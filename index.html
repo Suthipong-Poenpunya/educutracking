@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChulaEduTracker — ระบบติดตามและวางแผนการศึกษา</title>
+  <meta name="description" content="ระบบคำนวณหน่วยกิตและวางแผนการศึกษา หลักสูตรครุศาสตรบัณฑิต สาขาเทคโนโลยีการศึกษา จุฬาลงกรณ์มหาวิทยาลัย">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="#" class="logo" onclick="return false">
+        <span class="logo-icon">🎓</span>
+        <span class="logo-text">ChulaEduTracker</span>
+      </a>
+      <div class="user-info" id="user-info" style="display:none">
+        <span class="user-name" id="user-display-name"></span>
+        <button class="btn-logout" id="btn-logout" onclick="handleLogout()">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Registration Screen -->
+  <div id="register-screen" class="register-screen">
+    <div class="register-card">
+      <div style="font-size:48px;margin-bottom:12px">🎓</div>
+      <h2>ChulaEduTracker</h2>
+      <p class="subtitle">ระบบติดตามและวางแผนการศึกษา<br>ครุศาสตรบัณฑิต สาขาเทคโนโลยีการศึกษา จุฬาฯ</p>
+      <form id="register-form" onsubmit="handleRegister(event)" style="text-align:left">
+        <div class="form-group">
+          <label class="form-label">ชื่อ-นามสกุล</label>
+          <input type="text" class="form-input" id="reg-name" required placeholder="เช่น สมชาย ใจดี">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสนิสิต</label>
+          <input type="text" class="form-input" id="reg-student-id" required placeholder="เช่น 6438xxxxx27">
+        </div>
+        <div class="form-group">
+          <label class="form-label">โปรแกรม</label>
+          <select class="form-select" id="reg-program">
+            <option value="single_major">เอกเดี่ยว (เทคโนโลยีการศึกษา)</option>
+            <option value="normal">โปรแกรมปกติ</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ปีการศึกษาที่เข้า (พ.ศ.)</label>
+            <input type="number" class="form-input" id="reg-entry-year" required placeholder="2566" min="2555" max="2580">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ภาคที่เข้า</label>
+            <select class="form-select" id="reg-entry-sem">
+              <option value="1">ภาคต้น</option>
+              <option value="2">ภาคปลาย</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">
+          เริ่มใช้งาน
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- App (hidden until registered) -->
+  <div id="app-container" style="display:none">
+    <!-- Tabs -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 ภาพรวม</button>
+      <button class="tab-btn" data-tab="courses" onclick="switchTab('courses')">📚 บันทึกวิชา</button>
+      <button class="tab-btn" data-tab="analysis" onclick="switchTab('analysis')">📈 วิเคราะห์</button>
+      <button class="tab-btn" data-tab="planning" onclick="switchTab('planning')">🗓 วางแผน</button>
+    </nav>
+
+    <main class="main-content">
+      <!-- Tab 1: Dashboard -->
+      <div class="tab-panel active" id="panel-dashboard">
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="card progress-section" id="progress-section">
+          <h3>📊 ความก้าวหน้าตามหมวด</h3>
+          <div id="progress-bars"></div>
+        </div>
+        <div class="card" style="margin-top:16px" id="missing-section">
+          <h3 class="section-title">⚠️ วิชาบังคับที่ยังไม่ได้ลง</h3>
+          <ul class="missing-list" id="missing-list"></ul>
+        </div>
+        <div class="card" style="margin-top:16px" id="graduation-check-section">
+          <h3 class="section-title">🎓 ตรวจสอบเงื่อนไขจบ</h3>
+          <div id="graduation-check"></div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Courses -->
+      <div class="tab-panel" id="panel-courses">
+        <div class="toolbar">
+          <h2 class="section-title" style="margin:0">📚 บันทึกวิชาเรียน</h2>
+          <button class="btn btn-primary" onclick="showAddSemesterModal()">+ เพิ่มภาคการศึกษา</button>
+        </div>
+        <div id="semesters-list"></div>
+        <div class="empty-state" id="courses-empty">
+          <div class="empty-icon">📭</div>
+          <p>ยังไม่มีข้อมูลภาคการศึกษา</p>
+          <button class="btn btn-primary" onclick="showAddSemesterModal()">+ เพิ่มภาคการศึกษาแรก</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Analysis -->
+      <div class="tab-panel" id="panel-analysis">
+        <div class="toolbar">
+          <h2 class="section-title" style="margin:0">📈 รายงานผลการเรียน</h2>
+          <button class="btn btn-secondary btn-sm" onclick="exportGradeReport()">📥 Export CSV</button>
+        </div>
+        <div id="grade-report"></div>
+        <div class="empty-state" id="analysis-empty">
+          <div class="empty-icon">📊</div>
+          <p>ยังไม่มีข้อมูลผลการเรียน กรุณาเพิ่มวิชาในแท็บ "บันทึกวิชา"</p>
+        </div>
+      </div>
+
+      <!-- Tab 4: Planning -->
+      <div class="tab-panel" id="panel-planning">
+        <h2 class="section-title">🗓 วางแผนการศึกษา</h2>
+        <!-- Predictor -->
+        <div class="card" id="predictor-section">
+          <h3 class="section-title">🔮 คาดคะเนวันจบ</h3>
+          <div id="prediction-result"></div>
+        </div>
+        <!-- Planner -->
+        <div class="card" style="margin-top:16px">
+          <h3 class="section-title">📋 วางแผนจบตามเป้าหมาย</h3>
+          <div class="plan-form">
+            <div class="form-group">
+              <label class="form-label">ต้องการจบปีการศึกษา</label>
+              <input type="number" class="form-input" id="plan-target-year" placeholder="2570" min="2565" max="2580">
+            </div>
+            <div class="form-group">
+              <label class="form-label">ภาค</label>
+              <select class="form-select" id="plan-target-sem">
+                <option value="1">ภาคต้น</option>
+                <option value="2">ภาคปลาย</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">นก. สูงสุด/ภาค</label>
+              <input type="number" class="form-input" id="plan-max-credits" value="22" min="9" max="30">
+            </div>
+            <div class="form-group" style="align-self:end">
+              <button class="btn btn-primary" onclick="generatePlanUI()">คำนวณแผน</button>
+            </div>
+          </div>
+          <div id="plan-result"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Semester Modal -->
+  <div class="modal-overlay" id="modal-add-semester">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">เพิ่มภาคการศึกษา</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-semester')">&times;</button>
+      </div>
+      <form onsubmit="handleAddSemester(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ปีการศึกษา (พ.ศ.)</label>
+            <input type="number" class="form-input" id="sem-year" required min="2555" max="2580">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ภาคการศึกษา</label>
+            <select class="form-select" id="sem-term">
+              <option value="1">ภาคต้น</option>
+              <option value="2">ภาคปลาย</option>
+              <option value="3">ภาคฤดูร้อน</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-semester')">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">เพิ่ม</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Course Modal -->
+  <div class="modal-overlay" id="modal-add-course">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="course-modal-title">เพิ่มรายวิชา</h3>
+        <button class="modal-close" onclick="closeModal('modal-add-course')">&times;</button>
+      </div>
+      <form onsubmit="handleSaveCourse(event)">
+        <input type="hidden" id="course-edit-id">
+        <input type="hidden" id="course-semester-id">
+        <!-- Type Selection -->
+        <div class="form-group">
+          <label class="form-label">ประเภท</label>
+          <div class="form-radio-group">
+            <label class="form-radio">
+              <input type="radio" name="courseType" value="curriculum" checked onchange="toggleCourseType(this.value)">
+              วิชาในหลักสูตร
+            </label>
+            <label class="form-radio">
+              <input type="radio" name="courseType" value="manual" onchange="toggleCourseType(this.value)">
+              กรอกเอง (Gen-Ed / เลือกเสรี)
+            </label>
+          </div>
+        </div>
+        <!-- Curriculum Search -->
+        <div id="curriculum-search-section">
+          <div class="form-group search-wrapper">
+            <label class="form-label">ค้นหาวิชา (รหัสหรือชื่อ)</label>
+            <input type="text" class="form-input" id="course-search" placeholder="พิมพ์รหัสหรือชื่อวิชา..." oninput="handleCourseSearch(this.value)" autocomplete="off">
+            <div class="search-results" id="search-results"></div>
+          </div>
+          <div id="selected-course-info" style="display:none">
+            <div class="grade-summary-box" style="margin-bottom:16px">
+              <div style="font-size:14px;font-weight:600" id="selected-course-name"></div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                <span id="selected-course-code"></span> · <span id="selected-course-credits"></span> หน่วยกิต · <span id="selected-course-category"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Manual Entry -->
+        <div id="manual-entry-section" style="display:none">
+          <div class="form-group">
+            <label class="form-label">รหัสวิชา</label>
+            <input type="text" class="form-input" id="manual-code" placeholder="เช่น 0201101">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ชื่อวิชา</label>
+            <input type="text" class="form-input" id="manual-name" placeholder="ชื่อวิชา">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">หน่วยกิต</label>
+              <input type="number" class="form-input" id="manual-credits" placeholder="3" min="1" max="12">
+            </div>
+            <div class="form-group">
+              <label class="form-label">หมวดวิชา</label>
+              <select class="form-select" id="manual-category">
+                <option value="">-- เลือกหมวด --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- Grade -->
+        <div class="form-group">
+          <label class="form-label">เกรด</label>
+          <select class="form-select" id="course-grade">
+            <option value="">-- เลือกเกรด --</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-course')">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-course">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts (order matters) -->
+  <script src="curriculum.js"></script>
+  <script src="utils.js"></script>
+  <script src="calculator.js"></script>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

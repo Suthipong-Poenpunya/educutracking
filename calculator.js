@@ -1,0 +1,295 @@
+// ============================================================
+// calculator.js — Grade & Progress Calculation Engine
+// ChulaEduTracker
+// ============================================================
+
+/**
+ * คำนวณ CA, CG, GP, GPA ของภาคเดียว
+ * @param {Array} courses - รายวิชาในภาคนั้น
+ * @returns {{ CA: number, CG: number, GP: number, GPA: number|null }}
+ */
+function calcSemesterGrade(courses) {
+  let CA = 0, CG = 0, GP = 0;
+  courses.forEach(c => {
+    const credits = parseFloat(c.credits);
+    // CA = ทุกวิชาที่ลงทะเบียน (ยกเว้น FOUND ที่ไม่นับ นก.)
+    if (c.category !== 'FOUND') {
+      CA += credits;
+    }
+    // CG = วิชาที่นับ GPA (ไม่รวม W, I, และ FOUND)
+    if (c.grade !== 'W' && c.grade !== 'I' && c.category !== 'FOUND') {
+      if (GPA_COUNTED.has(c.grade)) {
+        CG += credits;
+        GP += GRADE_POINTS[c.grade] * credits;
+      }
+    }
+  });
+  return {
+    CA,
+    CG,
+    GP: +GP.toFixed(2),
+    GPA: CG > 0 ? +(GP / CG).toFixed(2) : null
+  };
+}
+
+/**
+ * คำนวณ CAX, CGX, GPX, GPAX สะสมจากทุกภาค
+ * @param {Array} semesterGrades - ผลลัพธ์จาก calcSemesterGrade ของแต่ละภาค
+ * @returns {{ CAX: number, CGX: number, GPX: number, GPAX: number|null }}
+ */
+function calcCumulative(semesterGrades) {
+  let CAX = 0, CGX = 0, GPX = 0;
+  semesterGrades.forEach(s => {
+    CAX += s.CA;
+    CGX += s.CG;
+    GPX += s.GP;
+  });
+  return {
+    CAX,
+    CGX,
+    GPX: +GPX.toFixed(2),
+    GPAX: CGX > 0 ? +(GPX / CGX).toFixed(2) : null
+  };
+}
+
+/**
+ * ตรวจสอบความก้าวหน้าตามหลักสูตร
+ * @param {Array} enrollments - วิชาที่ลงทะเบียนทั้งหมด
+ * @param {Array} curriculum - ข้อมูลหลักสูตร
+ * @returns {Object} progress object
+ */
+function calcProgress(enrollments, curriculum) {
+  const passed = enrollments.filter(e => PASSED_GRADES.has(e.grade));
+  const passedCodes = new Set(passed.map(e => e.course_code));
+
+  // รวมหน่วยกิตที่ผ่านตามหมวด
+  const earned = {};
+  passed.forEach(e => {
+    if (e.category !== 'FOUND') { // ไม่นับวิชาพื้นฐาน
+      earned[e.category] = (earned[e.category] || 0) + parseFloat(e.credits);
+    }
+  });
+
+  // Gen-Ed breakdown
+  const ge = {};
+  Object.keys(CATEGORY_RULES.GE.sub).forEach(key => {
+    ge[key] = {
+      earned: earned[key] || 0,
+      required: CATEGORY_RULES.GE.sub[key].required,
+      label: CATEGORY_RULES.GE.sub[key].label
+    };
+  });
+  const geTotal = Object.values(ge).reduce((s, v) => s + v.earned, 0);
+
+  // วิชาครู
+  const profMissing = curriculum
+    .filter(c => c.category === 'PROF' && c.is_required && !passedCodes.has(c.course_code));
+  const prof = {
+    earned: earned['PROF'] || 0,
+    required: CATEGORY_RULES.PROF.total_required,
+    missing: profMissing,
+    label: CATEGORY_RULES.PROF.label
+  };
+
+  // วิชาเอกบังคับ
+  const majorCoreMissing = curriculum
+    .filter(c => c.category === 'MAJOR_CORE' && c.is_required && !passedCodes.has(c.course_code));
+  const majorCore = {
+    earned: earned['MAJOR_CORE'] || 0,
+    required: CATEGORY_RULES.MAJOR_CORE.total_required,
+    missing: majorCoreMissing,
+    label: CATEGORY_RULES.MAJOR_CORE.label
+  };
+
+  // วิชาเอกเลือก
+  const elec1Earned = earned['MAJOR_ELEC1'] || 0;
+  const elec2Earned = earned['MAJOR_ELEC2'] || 0;
+  const majorElec = {
+    elec1: { earned: elec1Earned, required: 9, label: 'เลือกด้านเทคโนโลยีฯ' },
+    elec2: { earned: elec2Earned, required: 6, label: 'เลือกตามกลุ่มวิชา' },
+    total: elec1Earned + elec2Earned,
+    required: 20,
+    label: CATEGORY_RULES.MAJOR_ELEC.label
+  };
+
+  // วิชาเลือกเสรี
+  const freeElec = {
+    earned: earned['FREE_ELEC'] || 0,
+    required: CATEGORY_RULES.FREE_ELEC.total_required,
+    label: CATEGORY_RULES.FREE_ELEC.label
+  };
+
+  const totalEarned = geTotal + prof.earned + majorCore.earned + majorElec.total + freeElec.earned;
+
+  return {
+    ge,
+    geTotal,
+    prof,
+    majorCore,
+    majorElec,
+    freeElec,
+    totalEarned,
+    totalRequired: TOTAL_CREDITS_REQUIRED,
+    remaining: Math.max(0, TOTAL_CREDITS_REQUIRED - totalEarned),
+    canGraduate: (
+      geTotal >= 30 &&
+      prof.earned >= 36 && profMissing.length === 0 &&
+      majorCore.earned >= 40 && majorCoreMissing.length === 0 &&
+      majorElec.total >= 20 &&
+      elec1Earned >= 9 &&
+      elec2Earned >= 6 &&
+      freeElec.earned >= 6
+    )
+  };
+}
+
+/**
+ * คาดคะเนภาคการศึกษาที่จะจบ
+ */
+function predictGraduation(enrollments, progress, currentYear, currentSem) {
+  const semGroups = groupBy(enrollments.filter(e => e.category !== 'FOUND'), 'semester_id');
+  const semCount = Object.keys(semGroups).length;
+  if (semCount === 0) return null;
+
+  const totalEnrolled = enrollments
+    .filter(e => e.category !== 'FOUND')
+    .reduce((s, e) => s + parseFloat(e.credits), 0);
+  const avgPerSem = totalEnrolled / semCount;
+
+  const remaining = progress.remaining;
+  if (remaining <= 0) {
+    return {
+      avgCreditsPerSem: +avgPerSem.toFixed(1),
+      remainingCredits: 0,
+      semsNeeded: 0,
+      predictedYear: currentYear,
+      predictedSem: currentSem,
+      isOnTrack: true,
+      message: '🎉 ครบหน่วยกิตแล้ว!'
+    };
+  }
+
+  const semsNeeded = Math.ceil(remaining / avgPerSem);
+
+  let y = currentYear, s = currentSem;
+  for (let i = 0; i < semsNeeded; i++) {
+    s++;
+    if (s > 2) { s = 1; y++; }
+  }
+
+  const maxSems = 8;
+  const isOnTrack = (semCount + semsNeeded) <= maxSems;
+
+  return {
+    avgCreditsPerSem: +avgPerSem.toFixed(1),
+    remainingCredits: remaining,
+    semsNeeded,
+    predictedYear: y,
+    predictedSem: s,
+    isOnTrack,
+    message: isOnTrack
+      ? `✅ คาดว่าจบได้ภายใน ${maxSems} ภาค`
+      : `⚠️ คาดว่าใช้ ${semCount + semsNeeded} ภาค (เกิน ${maxSems} ภาค) ควรเพิ่มวิชา/ภาค`
+  };
+}
+
+/**
+ * สร้างแผนการลงทะเบียนตามเป้าหมาย
+ */
+function generatePlan(progress, curriculum, targetYear, targetSem, currentYear, currentSem, maxCreditsPerSem) {
+  // หาวิชาที่ยังต้องลง (บังคับก่อน)
+  let remaining = [
+    ...progress.prof.missing,
+    ...progress.majorCore.missing
+  ];
+
+  // เพิ่มวิชาเลือกที่ยังต้องการ
+  const elec1Needed = Math.max(0, 9 - progress.majorElec.elec1.earned);
+  const elec2Needed = Math.max(0, 6 - progress.majorElec.elec2.earned);
+
+  if (elec1Needed > 0) {
+    const availableElec1 = curriculum.filter(c =>
+      c.category === 'MAJOR_ELEC1' &&
+      !remaining.find(r => r.course_code === c.course_code)
+    );
+    let elec1Credits = 0;
+    for (const c of availableElec1) {
+      if (elec1Credits >= elec1Needed) break;
+      remaining.push(c);
+      elec1Credits += c.credits;
+    }
+  }
+
+  // Sort by recommended year/semester
+  remaining.sort((a, b) =>
+    (a.recommended_year * 10 + a.recommended_semester) -
+    (b.recommended_year * 10 + b.recommended_semester)
+  );
+
+  // คำนวณจำนวนภาคที่เหลือ
+  let semsAvailable = 0;
+  let y = currentYear, s = currentSem;
+  while (y < targetYear || (y === targetYear && s <= targetSem)) {
+    semsAvailable++;
+    s++;
+    if (s > 2) { s = 1; y++; }
+    if (semsAvailable > 20) break; // safety
+  }
+
+  // แจกวิชาเข้าแต่ละภาค
+  const plan = [];
+  let creditsUsed = 0;
+  let semCourses = [];
+  let planSemIdx = 0;
+
+  // สร้าง semester labels
+  const semLabels = [];
+  y = currentYear; s = currentSem;
+  for (let i = 0; i < Math.max(semsAvailable, 10); i++) {
+    s++;
+    if (s > 2) { s = 1; y++; }
+    semLabels.push({ year: y, sem: s });
+  }
+
+  remaining.forEach(course => {
+    if (creditsUsed + parseFloat(course.credits) > maxCreditsPerSem && semCourses.length > 0) {
+      const label = semLabels[planSemIdx] || { year: '?', sem: '?' };
+      plan.push({
+        semesterLabel: `${label.sem}/${label.year}`,
+        courses: semCourses,
+        totalCredits: creditsUsed
+      });
+      semCourses = [];
+      creditsUsed = 0;
+      planSemIdx++;
+    }
+    semCourses.push(course);
+    creditsUsed += parseFloat(course.credits);
+  });
+  if (semCourses.length > 0) {
+    const label = semLabels[planSemIdx] || { year: '?', sem: '?' };
+    plan.push({
+      semesterLabel: `${label.sem}/${label.year}`,
+      courses: semCourses,
+      totalCredits: creditsUsed
+    });
+    planSemIdx++;
+  }
+
+  return {
+    plan,
+    feasible: planSemIdx <= semsAvailable,
+    totalSemesters: planSemIdx,
+    availableSemesters: semsAvailable
+  };
+}
+
+/**
+ * Helper: จัดกลุ่มตาม key
+ */
+function groupBy(arr, key) {
+  return arr.reduce((acc, item) => {
+    (acc[item[key]] = acc[item[key]] || []).push(item);
+    return acc;
+  }, {});
+}
