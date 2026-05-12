@@ -18,7 +18,8 @@ function doGet(e) {
   let result;
   try {
     switch(action) {
-      case 'getUser':        result = getUser(e.parameter.userId); break;
+      case 'getUser':           result = getUser(e.parameter.userId); break;
+      case 'getUserByStudentId': result = getUserByStudentId(e.parameter.studentId); break;
       case 'getSemesters':   result = getSemesters(e.parameter.userId); break;
       case 'getEnrollments': result = getEnrollments(e.parameter.userId, e.parameter.semesterId); break;
       case 'getCurriculum':  result = getCurriculum(e.parameter.program); break;
@@ -73,6 +74,14 @@ function getUser(userId) {
   const sheet = getSheet(SHEET.USERS);
   const data = sheet.getDataRange().getValues();
   const row = data.find(r => r[0] === userId);
+  if (!row) return { success: false, message: 'User not found' };
+  return { success: true, data: { user_id: row[0], display_name: row[1], student_id: row[2], program: row[3], entry_year: row[4], entry_semester: row[5] } };
+}
+
+function getUserByStudentId(studentId) {
+  const sheet = getSheet(SHEET.USERS);
+  const data = sheet.getDataRange().getValues();
+  const row = data.find(r => r[2] === studentId);
   if (!row) return { success: false, message: 'User not found' };
   return { success: true, data: { user_id: row[0], display_name: row[1], student_id: row[2], program: row[3], entry_year: row[4], entry_semester: row[5] } };
 }
@@ -151,7 +160,12 @@ function updateEnrollment(payload) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === payload.enrollmentId) {
-      if (payload.grade) sheet.getRange(i + 1, 7).setValue(payload.grade);
+      const row = i + 1;
+      if (payload.courseCode !== undefined) sheet.getRange(row, 4).setValue(payload.courseCode);
+      if (payload.courseName !== undefined) sheet.getRange(row, 5).setValue(payload.courseName);
+      if (payload.credits !== undefined) sheet.getRange(row, 6).setValue(parseFloat(payload.credits));
+      if (payload.grade !== undefined) sheet.getRange(row, 7).setValue(payload.grade);
+      if (payload.category !== undefined) sheet.getRange(row, 8).setValue(payload.category);
       return { success: true };
     }
   }

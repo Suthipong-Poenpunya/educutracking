@@ -32,6 +32,18 @@ async function handleRegister(e) {
     entryYear: parseInt(document.getElementById('reg-entry-year').value),
     entrySemester: parseInt(document.getElementById('reg-entry-sem').value)
   };
+
+  // Try to find existing user by studentId (enables cross-device login)
+  const existing = await API.getUserByStudentId(data.studentId);
+  if (existing.success) {
+    currentUser = existing.data;
+    saveToStorage(STORAGE_KEYS.USER, currentUser);
+    showApp();
+    showToast('ยินดีต้อนรับกลับมา ' + currentUser.display_name + '!', 'success');
+    return;
+  }
+
+  // Create new user if not found
   const res = await API.createUser(data);
   if (res.success) {
     currentUser = { user_id: res.data.user_id, display_name: data.displayName, student_id: data.studentId, program: data.program, entry_year: data.entryYear, entry_semester: data.entrySemester };
@@ -61,11 +73,26 @@ function handleLogout() {
 
 // ---- Data Loading ----
 async function loadAllData() {
-  const semRes = await API.getSemesters(currentUser.user_id);
-  semesters = semRes.success ? semRes.data : [];
-  const enrRes = await API.getEnrollments(currentUser.user_id);
-  enrollments = enrRes.success ? enrRes.data : [];
-  renderAll();
+  // Show cached data immediately so UI isn't blank while waiting for GAS
+  const cachedSems = loadFromStorage('cache_sems_' + currentUser.user_id);
+  const cachedEnrs = loadFromStorage('cache_enrs_' + currentUser.user_id);
+  if (cachedSems !== null) semesters = cachedSems;
+  if (cachedEnrs !== null) enrollments = cachedEnrs;
+  if (cachedSems !== null || cachedEnrs !== null) renderAll();
+
+  // Fetch from GAS in parallel
+  const [semRes, enrRes] = await Promise.all([
+    API.getSemesters(currentUser.user_id),
+    API.getEnrollments(currentUser.user_id)
+  ]);
+
+  let changed = false;
+  if (semRes.success) { semesters = semRes.data; changed = true; }
+  if (enrRes.success) { enrollments = enrRes.data; changed = true; }
+  if (changed) {
+    saveDataCache();
+    renderAll();
+  }
 }
 
 function renderAll() {
@@ -84,6 +111,14 @@ function switchTab(tab) {
 // ---- Modal ----
 function showModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function closeCourseModal() { closeModal('modal-add-course'); }
+
+// ---- Data Cache ----
+function saveDataCache() {
+  if (!currentUser) return;
+  saveToStorage('cache_sems_' + currentUser.user_id, semesters);
+  saveToStorage('cache_enrs_' + currentUser.user_id, enrollments);
+}
 
 // ---- Dashboard ----
 function renderDashboard() {
@@ -213,6 +248,7 @@ async function handleAddSemester(e) {
     if (res.success) {
       const sem = semesters.find(s => s.semester_id === tempId);
       if (sem) sem.semester_id = res.data.semester_id;
+      saveDataCache();
       showToast('เพิ่มภาคการศึกษาสำเร็จ', 'success');
     } else {
       showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
@@ -238,6 +274,7 @@ async function deleteSemester(semId) {
   
   API.deleteSemester(semId).then(res => {
     if (res.success) {
+      saveDataCache();
       showToast('ลบภาคการศึกษาสำเร็จ', 'success');
     } else {
       semesters = backupSems;
@@ -363,6 +400,7 @@ async function handleSaveCourse(e) {
     // Background API
     API.updateEnrollment({ enrollmentId: editId, semesterId: semId, courseCode: code, courseName: name, credits, grade, category }).then(res => {
       if (res.success) {
+        saveDataCache();
         showToast('อัปเดตรายวิชาสำเร็จ', 'success');
       } else {
         if (idx >= 0 && backup) enrollments[idx] = backup; // rollback
@@ -374,7 +412,6 @@ async function handleSaveCourse(e) {
   } else {
     // Optimistic Add
     const tempId = 'temp-' + Date.now();
-    const isManual = document.getElementById('manual-course-entry').style.display !== 'none';
     const newEnr = {
       enrollment_id: tempId, semester_id: semId, course_code: code,
       course_name: name, credits: parseFloat(credits), grade, category, is_manual: isManual
@@ -388,6 +425,7 @@ async function handleSaveCourse(e) {
       if (res.success) {
         const found = enrollments.find(e => e.enrollment_id === tempId);
         if (found) found.enrollment_id = res.data.enrollment_id;
+        saveDataCache();
         showToast('เพิ่มรายวิชาสำเร็จ', 'success');
       } else {
         enrollments = enrollments.filter(e => e.enrollment_id !== tempId); // rollback
@@ -412,6 +450,7 @@ async function deleteCourse(enrollmentId) {
 
   API.deleteEnrollment(enrollmentId).then(res => {
     if (res.success) {
+      saveDataCache();
       showToast('ลบวิชาสำเร็จ', 'success');
     } else {
       enrollments.splice(backupIdx, 0, backup); // rollback

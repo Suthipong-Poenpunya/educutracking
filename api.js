@@ -75,6 +75,13 @@ function localGet(action, params) {
       }
       return { success: true, data: user };
     }
+    case 'getUserByStudentId': {
+      const user = loadFromStorage(STORAGE_KEYS.USER);
+      if (!user || user.student_id !== params.studentId) {
+        return { success: false, message: 'User not found' };
+      }
+      return { success: true, data: user };
+    }
     case 'getSemesters': {
       const semesters = loadFromStorage(STORAGE_KEYS.SEMESTERS) || [];
       const filtered = semesters.filter(s => s.user_id === params.userId);
@@ -216,6 +223,7 @@ function localPost(action, body) {
 
 const API = {
   getUser:          (userId) => apiGet('getUser', { userId }),
+  getUserByStudentId: (studentId) => apiGet('getUserByStudentId', { studentId }),
   createUser:       (data) => apiPost('createUser', data),
   getSemesters:     (userId) => apiGet('getSemesters', { userId }),
   addSemester:      (data) => apiPost('addSemester', data),
