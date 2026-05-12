@@ -192,17 +192,60 @@ function showAddSemesterModal() {
 
 async function handleAddSemester(e) {
   e.preventDefault();
-  const res = await API.addSemester({ userId: currentUser.user_id, academicYear: document.getElementById('sem-year').value, semester: document.getElementById('sem-term').value });
-  if (res.success) { closeModal('modal-add-semester'); await loadAllData(); showToast('เพิ่มภาคการศึกษาสำเร็จ', 'success'); }
-  else showToast(res.message || 'เกิดข้อผิดพลาด', 'error');
+  const year = document.getElementById('sem-year').value;
+  const term = document.getElementById('sem-term').value;
+  if (!year || !term) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+  // Optimistic UI update
+  closeModal('modal-add-semester');
+  const tempId = 'temp-' + Date.now();
+  semesters.push({ semester_id: tempId, academic_year: year, semester: term });
+  // Sort semesters
+  semesters.sort((a, b) => {
+    if (a.academic_year !== b.academic_year) return a.academic_year - b.academic_year;
+    return a.semester - b.semester;
+  });
+  renderCourses();
+  showToast('กำลังบันทึกข้อมูล...', 'info');
+
+  // Background API Call
+  API.addSemester({ userId: currentUser.user_id, academicYear: year, semester: term }).then(res => {
+    if (res.success) {
+      const sem = semesters.find(s => s.semester_id === tempId);
+      if (sem) sem.semester_id = res.data.semester_id;
+      showToast('เพิ่มภาคการศึกษาสำเร็จ', 'success');
+    } else {
+      showToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+      loadAllData(); // reload on fail
+    }
+  });
 }
 
 async function deleteSemester(semId) {
   const semEnr = enrollments.filter(e => e.semester_id === semId);
   if (!confirm(`ลบภาคการศึกษานี้? (มี ${semEnr.length} วิชา จะถูกลบด้วย)`)) return;
-  await API.deleteSemester(semId);
-  await loadAllData();
-  showToast('ลบภาคการศึกษาสำเร็จ', 'success');
+  
+  // Optimistic Delete
+  const backupSems = [...semesters];
+  const backupEnrs = [...enrollments];
+  
+  semesters = semesters.filter(s => s.semester_id !== semId);
+  enrollments = enrollments.filter(e => e.semester_id !== semId);
+  
+  renderCourses();
+  updateProgressUI();
+  showToast('กำลังลบข้อมูล...', 'info');
+  
+  API.deleteSemester(semId).then(res => {
+    if (res.success) {
+      showToast('ลบภาคการศึกษาสำเร็จ', 'success');
+    } else {
+      semesters = backupSems;
+      enrollments = backupEnrs;
+      renderCourses();
+      showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+    }
+  });
 }
 
 // ---- Add/Edit Course ----
@@ -276,42 +319,88 @@ function showSelectedCourse(course) {
 async function handleSaveCourse(e) {
   e.preventDefault();
   const editId = document.getElementById('course-edit-id').value;
-  const semId = document.getElementById('course-semester-id').value;
+  const code = document.getElementById('course-code-search').value;
+  const name = document.getElementById('selected-course-name').textContent;
+  const credits = document.getElementById('selected-course-credits').textContent;
+  const category = document.getElementById('course-category').value;
   const grade = document.getElementById('course-grade').value;
-  const isManual = document.querySelector('input[name="courseType"]:checked').value === 'manual';
+  const semId = document.getElementById('course-semester').value;
 
-  if (!grade) { showToast('กรุณาเลือกเกรด', 'warning'); return; }
+  if (!code || !category || !grade || !semId) return alert('กรุณากรอกข้อมูลให้ครบ');
 
-  let courseData;
-  if (isManual) {
-    const code = document.getElementById('manual-code').value.trim();
-    const name = document.getElementById('manual-name').value.trim();
-    const credits = document.getElementById('manual-credits').value;
-    const category = document.getElementById('manual-category').value;
-    if (!code || !name || !credits || !category) { showToast('กรุณากรอกข้อมูลให้ครบ', 'warning'); return; }
-    courseData = { courseCode: code, courseName: name, credits: parseFloat(credits), category, isManual: true };
-  } else {
-    if (!selectedCourse) { showToast('กรุณาเลือกวิชา', 'warning'); return; }
-    courseData = { courseCode: selectedCourse.course_code, courseName: selectedCourse.course_name, credits: selectedCourse.credits, category: selectedCourse.category, isManual: false };
-  }
+  closeModal('modal-add-course');
+  showToast('กำลังบันทึกข้อมูล...', 'info');
 
   if (editId) {
-    await API.updateEnrollment({ enrollmentId: editId, grade, ...courseData });
-    showToast('แก้ไขวิชาสำเร็จ', 'success');
+    // Optimistic Update
+    const idx = enrollments.findIndex(en => en.enrollment_id === editId);
+    let backup = null;
+    if (idx >= 0) {
+      backup = { ...enrollments[idx] };
+      enrollments[idx] = { ...enrollments[idx], course_code: code, course_name: name, credits: parseFloat(credits), grade, category, semester_id: semId };
+      renderCourses();
+      updateProgressUI();
+    }
+    
+    // Background API
+    API.updateEnrollment({ enrollmentId: editId, semesterId: semId, courseCode: code, courseName: name, credits, grade, category }).then(res => {
+      if (res.success) {
+        showToast('อัปเดตรายวิชาสำเร็จ', 'success');
+      } else {
+        if (idx >= 0 && backup) enrollments[idx] = backup; // rollback
+        showToast('อัปเดตรายวิชาล้มเหลว', 'error');
+        renderCourses();
+      }
+    });
+
   } else {
-    await API.addEnrollment({ semesterId: semId, userId: currentUser.user_id, grade, ...courseData });
-    showToast('เพิ่มวิชาสำเร็จ', 'success');
+    // Optimistic Add
+    const tempId = 'temp-' + Date.now();
+    const isManual = document.getElementById('manual-course-entry').style.display !== 'none';
+    const newEnr = {
+      enrollment_id: tempId, semester_id: semId, course_code: code,
+      course_name: name, credits: parseFloat(credits), grade, category, is_manual: isManual
+    };
+    enrollments.push(newEnr);
+    renderCourses();
+    updateProgressUI();
+    
+    // Background API
+    API.addEnrollment({ userId: currentUser.user_id, semesterId: semId, courseCode: code, courseName: name, credits, grade, category, isManual }).then(res => {
+      if (res.success) {
+        const found = enrollments.find(e => e.enrollment_id === tempId);
+        if (found) found.enrollment_id = res.data.enrollment_id;
+        showToast('เพิ่มรายวิชาสำเร็จ', 'success');
+      } else {
+        enrollments = enrollments.filter(e => e.enrollment_id !== tempId); // rollback
+        showToast('เพิ่มรายวิชาล้มเหลว', 'error');
+        renderCourses();
+      }
+    });
   }
-  closeModal('modal-add-course');
-  selectedCourse = null;
-  await loadAllData();
 }
 
 async function deleteCourse(enrollmentId) {
-  if (!confirm('ต้องการลบวิชานี้?')) return;
-  await API.deleteEnrollment(enrollmentId);
-  await loadAllData();
-  showToast('ลบวิชาสำเร็จ', 'success');
+  if (!confirm('คุณต้องการลบรายวิชานี้ใช่หรือไม่?')) return;
+  
+  // Optimistic Delete
+  const backupIdx = enrollments.findIndex(e => e.enrollment_id === enrollmentId);
+  if (backupIdx < 0) return;
+  const backup = enrollments[backupIdx];
+  enrollments.splice(backupIdx, 1);
+  renderCourses();
+  updateProgressUI();
+  showToast('กำลังลบข้อมูล...', 'info');
+
+  API.deleteEnrollment(enrollmentId).then(res => {
+    if (res.success) {
+      showToast('ลบวิชาสำเร็จ', 'success');
+    } else {
+      enrollments.splice(backupIdx, 0, backup); // rollback
+      renderCourses();
+      showToast('ลบวิชาล้มเหลว', 'error');
+    }
+  });
 }
 
 // ---- Analysis Tab ----

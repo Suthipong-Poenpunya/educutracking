@@ -12,29 +12,56 @@ const USE_API = API_BASE && API_BASE.length > 0;
 // ---- Fetch Helpers ----
 
 async function apiGet(action, params = {}) {
-  // Optimistic UI: Return from localStorage immediately for instant rendering
-  const localResult = localGet(action, params);
+  if (!USE_API) return localGet(action, params);
   
-  // Optional: Background sync from GAS if needed (omitted here to prevent race conditions with fast local writes)
-  // For this application, localStorage is the primary source of truth, GAS is the backup.
-  
-  return Promise.resolve(localResult);
+  const cacheKey = `cache_${action}_${JSON.stringify(params)}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  try {
+    const url = new URL(API_BASE);
+    url.searchParams.set('action', action);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) url.searchParams.set(k, v);
+    });
+    const res = await fetch(url.toString());
+    const data = await res.json();
+    if (data.success) {
+      sessionStorage.setItem(cacheKey, JSON.stringify(data));
+    }
+    return data;
+  } catch (err) {
+    console.warn('API GET failed, falling back to localStorage:', err);
+    return localGet(action, params);
+  }
+}
+
+function clearApiCache() {
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.startsWith('cache_')) sessionStorage.removeItem(key);
+  });
 }
 
 async function apiPost(action, body = {}) {
-  // 1. Perform local change immediately
-  const localResult = localPost(action, body);
-
-  // 2. Background sync to Google Apps Script
-  if (USE_API) {
-    fetch(API_BASE, {
-      method: 'POST',
-      body: JSON.stringify({ action, ...body })
-    }).catch(err => console.warn('Background sync failed:', err));
+  if (!USE_API) return localPost(action, body);
+  
+  // Invalidate cache on write
+  if (['addSemester', 'deleteSemester', 'addEnrollment', 'batchAddEnrollments', 'updateEnrollment', 'deleteEnrollment'].includes(action)) {
+    clearApiCache();
   }
 
-  // 3. Return instantly
-  return Promise.resolve(localResult);
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...body })
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('API POST failed, falling back to localStorage:', err);
+    return localPost(action, body);
+  }
 }
 
 // ---- localStorage Fallback Functions ----
