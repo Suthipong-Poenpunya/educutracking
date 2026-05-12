@@ -18,12 +18,20 @@ function closeOcrModal() {
 }
 
 // Setup Event Listener for File Input
-document.addEventListener('DOMContentLoaded', () => {
+function setupOcrEvents() {
   const fileInput = document.getElementById('cr60-file');
   if(fileInput) {
+    // Prevent duplicate listeners
+    fileInput.removeEventListener('change', handleFileUpload);
     fileInput.addEventListener('change', handleFileUpload);
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupOcrEvents);
+} else {
+  setupOcrEvents();
+}
 
 async function handleFileUpload(e) {
   const file = e.target.files[0];
@@ -219,14 +227,14 @@ async function confirmOcrImport() {
     }
     const existingCodes = new Set(existingEnrollments.map(e => e.course_code));
     
-    // 3. Add enrollments
+    // 3. Batch Add enrollments
+    const newEnrollments = [];
     for (const item of currentOcrData) {
       if (!existingCodes.has(item.courseCode)) {
         const semId = semIdMap[`${item.academicYear}-${item.semester}`];
         if (semId) {
-          await API.addEnrollment({
+          newEnrollments.push({
             semesterId: semId,
-            userId: currentUser.user_id,
             courseCode: item.courseCode,
             courseName: item.courseName,
             credits: item.credits,
@@ -235,6 +243,17 @@ async function confirmOcrImport() {
             isManual: item.isManual
           });
         }
+      }
+    }
+    
+    if (newEnrollments.length > 0) {
+      const batchRes = await API.batchAddEnrollments({
+        userId: currentUser.user_id,
+        enrollments: newEnrollments
+      });
+      
+      if (!batchRes.success) {
+        throw new Error(batchRes.message || 'Failed to batch import enrollments');
       }
     }
     

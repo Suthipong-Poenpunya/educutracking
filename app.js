@@ -133,7 +133,7 @@ function renderGraduationCheck(progress) {
     { label: `วิชาเอกเลือก (ด้านเทคโนโลยีฯ): ${progress.majorElec.elecEt.earned}/9 นก.`, pass: progress.majorElec.elecEt.earned >= 9 },
     { label: `วิชาเอกเลือก (ด้านคอมพิวเตอร์ฯ): ${progress.majorElec.elecCs.earned}/5 นก.`, pass: progress.majorElec.elecCs.earned >= 5 },
     { label: `วิชาเอกเลือก (ตามกลุ่มวิชา): ${progress.majorElec.elecGroup.earned}/6 นก.`, pass: progress.majorElec.elecGroup.earned >= 6 },
-    { label: `วิชาเลือกเสรี: ${progress.freeElec.earned}/6 นก.`, pass: progress.freeElec.earned >= 6 },
+    { label: `วิชาเลือกเสรี (ไม่บังคับ): ${progress.freeElec.earned} นก.`, pass: true },
     { label: `รวมทั้งหมด: ${progress.totalEarned}/${progress.totalRequired} นก.`, pass: progress.canGraduate }
   ];
   document.getElementById('graduation-check').innerHTML = checks.map(c => {

@@ -4,7 +4,7 @@
 // แล้ว Deploy > New deployment > Web app
 // ============================================================
 
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // ← เปลี่ยนตรงนี้
+const SPREADSHEET_ID = '15HmeUlELONPI0f33d9XbSG45-xUsAnbGSrFlzXsyYmc'; // ← เปลี่ยนตรงนี้
 const SHEET = {
   USERS:       'Users',
   SEMESTERS:   'Semesters',
@@ -41,6 +41,7 @@ function doPost(e) {
       case 'createUser':       result = createUser(payload); break;
       case 'addSemester':      result = addSemester(payload); break;
       case 'addEnrollment':    result = addEnrollment(payload); break;
+      case 'batchAddEnrollments': result = batchAddEnrollments(payload); break;
       case 'updateEnrollment': result = updateEnrollment(payload); break;
       case 'deleteEnrollment': result = deleteEnrollment(payload); break;
       case 'deleteSemester':   result = deleteSemester(payload); break;
@@ -127,6 +128,22 @@ function addEnrollment(payload) {
   const id = generateId();
   sheet.appendRow([id, payload.semesterId, payload.userId, payload.courseCode, payload.courseName, parseFloat(payload.credits), payload.grade, payload.category, payload.isManual || false, new Date().toISOString()]);
   return { success: true, data: { enrollment_id: id } };
+}
+
+function batchAddEnrollments(payload) {
+  const sheet = getSheet(SHEET.ENROLLMENTS);
+  const results = [];
+  for (const enr of payload.enrollments) {
+    const id = generateId();
+    sheet.appendRow([
+      id, enr.semesterId, payload.userId,
+      enr.courseCode, enr.courseName, parseFloat(enr.credits),
+      enr.grade, enr.category, enr.isManual || false,
+      new Date().toISOString()
+    ]);
+    results.push({ enrollment_id: id, course_code: enr.courseCode });
+  }
+  return { success: true, data: { imported: results.length, details: results } };
 }
 
 function updateEnrollment(payload) {

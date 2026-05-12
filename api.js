@@ -13,6 +13,15 @@ const USE_API = API_BASE && API_BASE.length > 0;
 
 async function apiGet(action, params = {}) {
   if (!USE_API) return localGet(action, params);
+  
+  const cacheKey = `cache_${action}_${JSON.stringify(params)}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    // Return cached immediately, optionally fetch in background?
+    // For now, simple cache to speed up reads
+    return JSON.parse(cached);
+  }
+
   try {
     const url = new URL(API_BASE);
     url.searchParams.set('action', action);
@@ -20,15 +29,31 @@ async function apiGet(action, params = {}) {
       if (v !== undefined && v !== null) url.searchParams.set(k, v);
     });
     const res = await fetch(url.toString());
-    return await res.json();
+    const data = await res.json();
+    if (data.success) {
+      sessionStorage.setItem(cacheKey, JSON.stringify(data));
+    }
+    return data;
   } catch (err) {
     console.warn('API GET failed, falling back to localStorage:', err);
     return localGet(action, params);
   }
 }
 
+function clearApiCache() {
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.startsWith('cache_')) sessionStorage.removeItem(key);
+  });
+}
+
 async function apiPost(action, body = {}) {
   if (!USE_API) return localPost(action, body);
+  
+  // Invalidate cache on write
+  if (['addSemester', 'deleteSemester', 'addEnrollment', 'batchAddEnrollments', 'updateEnrollment', 'deleteEnrollment'].includes(action)) {
+    clearApiCache();
+  }
+
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
@@ -134,6 +159,28 @@ function localPost(action, body) {
       saveToStorage(STORAGE_KEYS.ENROLLMENTS, enrollments);
       return { success: true, data: { enrollment_id: enrollment.enrollment_id } };
     }
+    case 'batchAddEnrollments': {
+      const enrollments = loadFromStorage(STORAGE_KEYS.ENROLLMENTS) || [];
+      const results = [];
+      for (const enr of body.enrollments) {
+        const enrollment = {
+          enrollment_id: generateUUID(),
+          semester_id: enr.semesterId,
+          user_id: body.userId,
+          course_code: enr.courseCode,
+          course_name: enr.courseName,
+          credits: parseFloat(enr.credits),
+          grade: enr.grade,
+          category: enr.category,
+          is_manual: enr.isManual || false,
+          created_at: new Date().toISOString()
+        };
+        enrollments.push(enrollment);
+        results.push({ enrollment_id: enrollment.enrollment_id, course_code: enr.courseCode });
+      }
+      saveToStorage(STORAGE_KEYS.ENROLLMENTS, enrollments);
+      return { success: true, data: { imported: results.length, details: results } };
+    }
     case 'updateEnrollment': {
       const enrollments = loadFromStorage(STORAGE_KEYS.ENROLLMENTS) || [];
       const idx = enrollments.findIndex(e => e.enrollment_id === body.enrollmentId);
@@ -177,6 +224,7 @@ const API = {
   deleteSemester:   (semesterId) => apiPost('deleteSemester', { semesterId }),
   getEnrollments:   (userId, semesterId) => apiGet('getEnrollments', { userId, semesterId }),
   addEnrollment:    (data) => apiPost('addEnrollment', data),
+  batchAddEnrollments: (data) => apiPost('batchAddEnrollments', data),
   updateEnrollment: (data) => apiPost('updateEnrollment', data),
   deleteEnrollment: (enrollmentId) => apiPost('deleteEnrollment', { enrollmentId }),
   getCurriculum:    (program) => apiGet('getCurriculum', { program })

@@ -125,7 +125,7 @@ function calcProgress(enrollments, curriculum) {
     label: CATEGORY_RULES.FREE_ELEC.label
   };
 
-  const totalEarned = geTotal + prof.earned + majorCore.earned + majorElec.total + freeElec.earned;
+  const totalEarned = geTotal + prof.earned + majorCore.earned + majorElec.total; // ไม่นับรวม FREE_ELEC ในหน่วยกิตรวมที่จำเป็น
 
   return {
     ge,
@@ -144,7 +144,6 @@ function calcProgress(enrollments, curriculum) {
       majorElec.elecEt.earned >= majorElec.elecEt.required &&
       majorElec.elecCs.earned >= majorElec.elecCs.required &&
       majorElec.total >= majorElec.required &&
-      freeElec.earned >= freeElec.required &&
       totalEarned >= TOTAL_CREDITS_REQUIRED
     )
   };
