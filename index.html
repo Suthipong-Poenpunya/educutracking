@@ -6,6 +6,7 @@
   <title>ChulaEduTracker — ระบบติดตามและวางแผนการศึกษา</title>
   <meta name="description" content="ระบบคำนวณหน่วยกิตและวางแผนการศึกษา หลักสูตรครุศาสตรบัณฑิต สาขาเทคโนโลยีการศึกษา จุฬาลงกรณ์มหาวิทยาลัย">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
   <!-- Header -->
@@ -96,7 +97,10 @@
       <div class="tab-panel" id="panel-courses">
         <div class="toolbar">
           <h2 class="section-title" style="margin:0">📚 บันทึกวิชาเรียน</h2>
-          <button class="btn btn-primary" onclick="showAddSemesterModal()">+ เพิ่มภาคการศึกษา</button>
+          <div class="actions">
+            <button class="btn btn-outline" onclick="showAddSemesterModal()">+ เพิ่มภาคการศึกษา</button>
+            <button class="btn btn-primary" onclick="openOcrModal()">📄 อัปโหลดใบเกรด (CR60)</button>
+          </div>
         </div>
         <div id="semesters-list"></div>
         <div class="empty-state" id="courses-empty">
@@ -256,22 +260,60 @@
             <option value="">-- เลือกเกรด --</option>
           </select>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-course')">ยกเลิก</button>
-          <button type="submit" class="btn btn-primary" id="btn-save-course">บันทึก</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeCourseModal()">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึก</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- OCR Upload Modal -->
+  <div id="ocr-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>อัปโหลดใบเกรด (CR60)</h3>
+        <button class="modal-close" onclick="closeOcrModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p>อัปโหลดไฟล์ PDF ใบแจ้งผลการศึกษา (CR60) เพื่อดึงข้อมูลรายวิชาอัตโนมัติ</p>
+        <div style="margin-top: 1rem;">
+          <input type="file" id="cr60-file" accept=".pdf" class="form-input" style="padding: 0.5rem;" />
+        </div>
+        <div id="ocr-status" style="margin-top: 1rem; color: var(--color-primary); font-size: 0.9rem;"></div>
+        
+        <div id="ocr-results" style="display: none; margin-top: 1.5rem; max-height: 300px; overflow-y: auto;">
+          <h4 style="margin-bottom: 0.5rem; font-size: 1rem;">วิชาที่สแกนพบ (<span id="ocr-count">0</span> รายการ)</h4>
+          <table class="table" style="font-size: 0.85rem;">
+            <thead>
+              <tr>
+                <th>เทอม</th>
+                <th>รหัสวิชา</th>
+                <th>เกรด</th>
+                <th>หมวดหมู่ระบบ</th>
+              </tr>
+            </thead>
+            <tbody id="ocr-preview-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeOcrModal()">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="btn-ocr-confirm" onclick="confirmOcrImport()" disabled>นำเข้าข้อมูล</button>
+      </div>
     </div>
   </div>
 
   <!-- Toast -->
   <div id="toast-container"></div>
 
-  <!-- Scripts (order matters) -->
-  <script src="curriculum.js"></script>
+  <!-- Scripts -->
   <script src="utils.js"></script>
+  <script src="curriculum.js"></script>
   <script src="calculator.js"></script>
   <script src="api.js"></script>
+  <script src="ocr.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

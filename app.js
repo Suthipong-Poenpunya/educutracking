@@ -130,8 +130,9 @@ function renderGraduationCheck(progress) {
     { label: `Gen-Ed: ${progress.geTotal}/30 นก.`, pass: progress.geTotal >= 30 },
     { label: `วิชาครู: ${progress.prof.earned}/36 นก.`, pass: progress.prof.earned >= 36 && progress.prof.missing.length === 0, warn: progress.prof.missing.length > 0 },
     { label: `วิชาเอกบังคับ: ${progress.majorCore.earned}/40 นก.`, pass: progress.majorCore.earned >= 40 && progress.majorCore.missing.length === 0 },
-    { label: `วิชาเอกเลือก (ET/CS): ${progress.majorElec.elec1.earned}/9 นก.`, pass: progress.majorElec.elec1.earned >= 9 },
-    { label: `วิชาเอกเลือก (กลุ่ม): ${progress.majorElec.elec2.earned}/6 นก.`, pass: progress.majorElec.elec2.earned >= 6 },
+    { label: `วิชาเอกเลือก (ด้านเทคโนโลยีฯ): ${progress.majorElec.elecEt.earned}/9 นก.`, pass: progress.majorElec.elecEt.earned >= 9 },
+    { label: `วิชาเอกเลือก (ด้านคอมพิวเตอร์ฯ): ${progress.majorElec.elecCs.earned}/5 นก.`, pass: progress.majorElec.elecCs.earned >= 5 },
+    { label: `วิชาเอกเลือก (ตามกลุ่มวิชา): ${progress.majorElec.elecGroup.earned}/6 นก.`, pass: progress.majorElec.elecGroup.earned >= 6 },
     { label: `วิชาเลือกเสรี: ${progress.freeElec.earned}/6 นก.`, pass: progress.freeElec.earned >= 6 },
     { label: `รวมทั้งหมด: ${progress.totalEarned}/${progress.totalRequired} นก.`, pass: progress.canGraduate }
   ];

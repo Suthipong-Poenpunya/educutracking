@@ -102,13 +102,19 @@ function calcProgress(enrollments, curriculum) {
   };
 
   // วิชาเอกเลือก
-  const elec1Earned = earned['MAJOR_ELEC1'] || 0;
-  const elec2Earned = earned['MAJOR_ELEC2'] || 0;
+  const elecEtLimit = CATEGORY_RULES.MAJOR_ELEC.sub.MAJOR_ELEC_ET.required;
+  const elecCsLimit = CATEGORY_RULES.MAJOR_ELEC.sub.MAJOR_ELEC_CS.required;
+  const elecGroupLimit = CATEGORY_RULES.MAJOR_ELEC.sub.MAJOR_ELEC_GROUP.required;
+  let elecEtEarned = earned['MAJOR_ELEC_ET'] || 0;
+  let elecCsEarned = earned['MAJOR_ELEC_CS'] || 0;
+  let elecGroupEarned = earned['MAJOR_ELEC_GROUP'] || 0;
+  
   const majorElec = {
-    elec1: { earned: elec1Earned, required: 9, label: 'เลือกด้านเทคโนโลยีฯ' },
-    elec2: { earned: elec2Earned, required: 6, label: 'เลือกตามกลุ่มวิชา' },
-    total: elec1Earned + elec2Earned,
-    required: 20,
+    total: elecEtEarned + elecCsEarned + elecGroupEarned,
+    required: CATEGORY_RULES.MAJOR_ELEC.total_required,
+    elecEt: { earned: elecEtEarned, required: elecEtLimit },
+    elecCs: { earned: elecCsEarned, required: elecCsLimit },
+    elecGroup: { earned: elecGroupEarned, required: elecGroupLimit },
     label: CATEGORY_RULES.MAJOR_ELEC.label
   };
 
@@ -132,13 +138,14 @@ function calcProgress(enrollments, curriculum) {
     totalRequired: TOTAL_CREDITS_REQUIRED,
     remaining: Math.max(0, TOTAL_CREDITS_REQUIRED - totalEarned),
     canGraduate: (
-      geTotal >= 30 &&
-      prof.earned >= 36 && profMissing.length === 0 &&
-      majorCore.earned >= 40 && majorCoreMissing.length === 0 &&
-      majorElec.total >= 20 &&
-      elec1Earned >= 9 &&
-      elec2Earned >= 6 &&
-      freeElec.earned >= 6
+      geTotal >= CATEGORY_RULES.GE.total_required &&
+      prof.earned >= prof.required && prof.missing.length === 0 &&
+      majorCore.earned >= majorCore.required && majorCore.missing.length === 0 &&
+      majorElec.elecEt.earned >= majorElec.elecEt.required &&
+      majorElec.elecCs.earned >= majorElec.elecCs.required &&
+      majorElec.total >= majorElec.required &&
+      freeElec.earned >= freeElec.required &&
+      totalEarned >= TOTAL_CREDITS_REQUIRED
     )
   };
 }

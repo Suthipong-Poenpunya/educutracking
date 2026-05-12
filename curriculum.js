@@ -29,14 +29,10 @@ const CATEGORY_RULES = {
     total_required: 30,
     label: 'วิชาศึกษาทั่วไป',
     sub: {
-      GE_SOC:     { required: 3,  label: 'สังคมศาสตร์' },
-      GE_SCI:     { required: 3,  label: 'วิทยาศาสตร์และคณิตศาสตร์' },
-      GE_HUM:     { required: 3,  label: 'มนุษยศาสตร์' },
-      GE_HEA:     { required: 3,  label: 'สหศาสตร์' },
-      GE_LANG_EN: { required: 9,  label: 'ภาษาอังกฤษ (บังคับ)' },
-      GE_LANG_OT: { required: 3,  label: 'ภาษาต่างประเทศอื่น' },
-      GE_21CENT:  { required: 3,  label: 'วิชาในศตวรรษที่ 21' },
-      GE_ELEC:    { required: 3,  label: 'วิชาเลือกพิเศษ' }
+      GE_CORE:    { required: 12, label: 'ตามกำหนดมหาวิทยาลัย' },
+      GE_LANG_EN: { required: 9,  label: 'ภาษาอังกฤษ' },
+      GE_LANG_OT: { required: 3,  label: 'ภาษาที่สาม' },
+      GE_FAC:     { required: 6,  label: 'กลุ่มวิชาคณะครุศาสตร์' }
     }
   },
   PROF: {
@@ -51,8 +47,9 @@ const CATEGORY_RULES = {
     total_required: 20,
     label: 'วิชาเอกเลือก',
     sub: {
-      MAJOR_ELEC1: { required: 9, label: 'เลือกด้านเทคโนโลยีฯ (≥9 นก.)' },
-      MAJOR_ELEC2: { required: 6, label: 'เลือกตามกลุ่มวิชา (≥6 นก.)' }
+      MAJOR_ELEC_ET:   { required: 9, label: 'ด้านเทคโนโลยีฯ (≥9 นก.)' },
+      MAJOR_ELEC_CS:   { required: 5, label: 'ด้านคอมพิวเตอร์ฯ (≥5 นก.)' },
+      MAJOR_ELEC_GROUP:{ required: 6, label: 'ตามกลุ่มวิชา (≥6 นก.)' }
     }
   },
   FREE_ELEC: {
@@ -65,31 +62,24 @@ const TOTAL_CREDITS_REQUIRED = 132;
 
 // ---- GE Category Options สำหรับ Manual Entry ----
 const GE_CATEGORIES = [
-  { value: 'GE_SOC',     label: 'สังคมศาสตร์' },
-  { value: 'GE_SCI',     label: 'วิทยาศาสตร์และคณิตศาสตร์' },
-  { value: 'GE_HUM',     label: 'มนุษยศาสตร์' },
-  { value: 'GE_HEA',     label: 'สหศาสตร์' },
+  { value: 'GE_CORE',    label: 'ตามกำหนดมหาวิทยาลัย' },
   { value: 'GE_LANG_EN', label: 'ภาษาอังกฤษ' },
-  { value: 'GE_LANG_OT', label: 'ภาษาต่างประเทศอื่น' },
-  { value: 'GE_21CENT',  label: 'วิชาในศตวรรษที่ 21' },
-  { value: 'GE_ELEC',    label: 'วิชาเลือกพิเศษ' },
+  { value: 'GE_LANG_OT', label: 'ภาษาที่สาม' },
+  { value: 'GE_FAC',     label: 'กลุ่มวิชาคณะครุศาสตร์' },
   { value: 'FREE_ELEC',  label: 'วิชาเลือกเสรี' }
 ];
 
 // ---- Category Labels สำหรับ UI ----
 const CATEGORY_LABELS = {
-  'GE_SOC': 'GE สังคม',
-  'GE_SCI': 'GE วิทย์-คณิต',
-  'GE_HUM': 'GE มนุษย์',
-  'GE_HEA': 'GE สหศาสตร์',
-  'GE_LANG_EN': 'GE ภาษาอังกฤษ',
-  'GE_LANG_OT': 'GE ภาษาต่างประเทศ',
-  'GE_21CENT': 'GE ศตวรรษที่ 21',
-  'GE_ELEC': 'GE เลือกพิเศษ',
+  'GE_CORE': 'GE บังคับ',
+  'GE_LANG_EN': 'GE อังกฤษ',
+  'GE_LANG_OT': 'GE ภาษาที่สาม',
+  'GE_FAC': 'GE คณะครุศาสตร์',
   'PROF': 'วิชาครู',
   'MAJOR_CORE': 'วิชาเอกบังคับ',
-  'MAJOR_ELEC1': 'เอกเลือก (ET/CS)',
-  'MAJOR_ELEC2': 'เอกเลือก (กลุ่มวิชา)',
+  'MAJOR_ELEC_ET': 'เอกเลือก (ET)',
+  'MAJOR_ELEC_CS': 'เอกเลือก (CS)',
+  'MAJOR_ELEC_GROUP': 'เอกเลือก (กลุ่มวิชา)',
   'FREE_ELEC': 'เลือกเสรี',
   'FOUND': 'วิชาพื้นฐาน'
 };
@@ -97,38 +87,27 @@ const CATEGORY_LABELS = {
 // ---- Curriculum Data (All Courses) ----
 const CURRICULUM_DATA = [
   // ===== 1. วิชาศึกษาทั่วไป (Gen-Ed) =====
-  // 1.1.5-1.1.7 ภาษาอังกฤษ (บังคับ)
   { course_code: '5500111', course_name: 'ภาษาอังกฤษเพื่อการเรียนรู้ในชีวิตจริง 1', credits: 3, category: 'GE_LANG_EN', is_required: true, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '5500112', course_name: 'ภาษาอังกฤษเพื่อการเรียนรู้ในชีวิตจริง 2', credits: 3, category: 'GE_LANG_EN', is_required: true, recommended_year: 1, recommended_semester: 2, prerequisite: '5500111', subcategory: '', program: 'all' },
   { course_code: '5500252', course_name: 'พัฒนาทักษะภาษาอังกฤษ', credits: 3, category: 'GE_LANG_EN', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '5500112', subcategory: '', program: 'all' },
+  { course_code: '2765142', course_name: 'เทคโนโลยีสารสนเทศและการสื่อสารเพื่อการเรียนรู้', credits: 1, category: 'FOUND', is_required: true, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
 
-  // 1.2.1 บังคับเลือก (เลือก 1 จาก 2)
-  { course_code: '2796200', course_name: 'ศิลปะเพื่อคุณภาพชีวิต', credits: 3, category: 'GE_21CENT', is_required: false, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2737201', course_name: 'ดนตรีเพื่อสุนทรียภาพ', credits: 3, category: 'GE_21CENT', is_required: false, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-
-  // 1.2.2 เลือก (เลือก 1 จาก 2)
-  { course_code: '2746292', course_name: 'การศึกษาเพื่อการพัฒนาที่ยั่งยืน', credits: 3, category: 'GE_ELEC', is_required: false, recommended_year: 1, recommended_semester: 2, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2747406', course_name: 'ภาวะผู้นำในการจัดการศึกษาในศตวรรษที่ 21', credits: 3, category: 'GE_ELEC', is_required: false, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-
-  // ===== 2. วิชาครู (36 หน่วยกิต — บังคับทั้งหมด) =====
+  // ===== 2. วิชาครู (36 หน่วยกิต) =====
   { course_code: '2700101', course_name: 'ปฏิบัติการสอน 1', credits: 1, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2700201', course_name: 'ปฏิบัติการสอน 2', credits: 1, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 2, prerequisite: '2700101', subcategory: '', program: 'all' },
   { course_code: '2700301', course_name: 'ปฏิบัติการสอน 3', credits: 2, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '2700201', subcategory: '', program: 'all' },
   { course_code: '2700401', course_name: 'ปฏิบัติการสอน 4', credits: 8, category: 'PROF', is_required: true, recommended_year: 4, recommended_semester: 1, prerequisite: '2700301', subcategory: '', program: 'all' },
   { course_code: '2716304', course_name: 'การพัฒนาหลักสูตรและการออกแบบการเรียนการสอน', credits: 3, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2719201', course_name: 'ภาษาไทยเพื่อการสื่อสารสำหรับวิชาชีพครู', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2725373', course_name: 'ภาษาอังกฤษเพื่อการสื่อสารสำหรับครู', credits: 2, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
+  { course_code: '2719201', course_name: 'ภาษาไทยเพื่อการสื่อสารสําหรับวิชาชีพครู', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
+  { course_code: '2725373', course_name: 'ภาษาอังกฤษเพื่อการสื่อสารสําหรับครู', credits: 2, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2746192', course_name: 'ปฐมนิเทศการศึกษา', credits: 2, category: 'PROF', is_required: true, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
+  { course_code: '2750298', course_name: 'การสร้างเสริมความสัมพันธ์ระหว่างสถานศึกษาผู้ปกครองและชุมชนในการพัฒนาผู้เรียน', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2756306', course_name: 'การวิจัยเพื่อพัฒนาการเรียนรู้', credits: 2, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2757308', course_name: 'การวัดประเมินผลการเรียนรู้และประกันคุณภาพการศึกษา', credits: 3, category: 'PROF', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2758501', course_name: 'สถิติและสารสนเทศทางการศึกษา', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2759151', course_name: 'จิตวิทยาพื้นฐานเพื่อการศึกษา', credits: 2, category: 'PROF', is_required: true, recommended_year: 1, recommended_semester: 2, prerequisite: '', subcategory: '', program: 'all' },
   { course_code: '2759218', course_name: 'จิตวิทยาการศึกษาและการศึกษาพิเศษ', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2765205', course_name: 'นวัตกรรมและเทคโนโลยีสารสนเทศและการสื่อสารเพื่อการศึกษา', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-  { course_code: '2750298', course_name: 'การเสริมสร้างความสัมพันธ์ระหว่างสถานศึกษา ผู้ปกครองและชุมชน', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
-
-  // วิชาพื้นฐาน (ไม่นับหน่วยกิต)
-  { course_code: '2765142', course_name: 'เทคโนโลยีสารสนเทศและการสื่อสารเพื่อการศึกษา (พื้นฐาน)', credits: 1, category: 'FOUND', is_required: true, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
+  { course_code: '2765205', course_name: 'นวัตกรรมและเทคโนโลยีสารสนเทศและการสื่อสารเพื่อการเรียนรู้', credits: 2, category: 'PROF', is_required: true, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'all' },
 
   // ===== 3. วิชาเอก — บังคับ (40 หน่วยกิต) =====
   { course_code: '2765133', course_name: 'ทฤษฎีการเรียนการสอนและจิตวิทยาทางเทคโนโลยีการศึกษา', credits: 2, category: 'MAJOR_CORE', is_required: true, recommended_year: 1, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'single_major' },
@@ -147,24 +126,60 @@ const CURRICULUM_DATA = [
   { course_code: '2766421', course_name: 'การออกแบบเทคโนโลยี', credits: 3, category: 'MAJOR_CORE', is_required: true, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: '', program: 'single_major' },
 
   // ===== 4. วิชาเอก — เลือก 1: ด้านเทคโนโลยีฯ (≥9 นก.) =====
-  // ET Group
-  { course_code: '2765131', course_name: 'การออกแบบและผลิตสื่อกราฟิก', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765132', course_name: 'คอมพิวเตอร์กราฟิกและแอนิเมชัน', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765213', course_name: 'ระบบการจัดการด้านการใช้สื่อทางการศึกษา', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765217', course_name: 'สื่อมวลชนทางการศึกษาและทักษะการรู้เท่าทันสื่อ', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765281', course_name: 'การผลิตรายการวิทยุและสื่อเสียงทางการศึกษา', credits: 2, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765222', course_name: 'เทคโนโลยีเปลี่ยนโลกเพื่อเสริมสร้างการเรียนรู้ทางไกล', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765305', course_name: 'การออกแบบสารและสื่อสร้างสรรค์', credits: 2, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765307', course_name: 'การจัดการศึกษานอกสถานที่และแหล่งการเรียนรู้', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765406', course_name: 'การเผยแพร่สัญญาณภาพและเสียงแบบมัลติแพลตฟอร์ม', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765407', course_name: 'เทคโนโลยีเพื่อเสริมสร้างการเรียนรู้ในระดับประถมศึกษา', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
-  { course_code: '2765408', course_name: 'เทคโนโลยีคัดสรรสำหรับนวัตกรรมการศึกษา', credits: 1, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_ET', program: 'single_major' },
+  { course_code: '2765131', course_name: 'การออกแบบและผลิตสื่อกราฟิก', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765132', course_name: 'คอมพิวเตอร์กราฟิกและแอนิเมชัน', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765213', course_name: 'ระบบการจัดการด้านการใช้สื่อทางการศึกษา', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765217', course_name: 'สื่อมวลชนทางการศึกษาและทักษะการรู้เท่าทันสื่อ', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765281', course_name: 'การผลิตรายการวิทยุและสื่อเสียงทางการศึกษา', credits: 2, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765222', course_name: 'เทคโนโลยีเปลี่ยนโลกเพื่อเสริมสร้างการเรียนรู้ทางไกล', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765305', course_name: 'การออกแบบสารและสื่อสร้างสรรค์', credits: 2, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765307', course_name: 'การจัดการศึกษานอกสถานที่และแหล่งการเรียนรู้', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765406', course_name: 'การเผยแพร่สัญญาณภาพและเสียงแบบมัลติแพลตฟอร์ม', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765407', course_name: 'เทคโนโลยีเพื่อเสริมสร้างการเรียนรู้ในระดับประถมศึกษา', credits: 3, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
+  { course_code: '2765408', course_name: 'เทคโนโลยีคัดสรรสำหรับนวัตกรรมการศึกษา', credits: 1, category: 'MAJOR_ELEC_ET', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC_ET', program: 'single_major' },
 
-  // CS Group
-  { course_code: '2766218', course_name: 'คอมพิวเตอร์และเทคโนโลยีสารสนเทศสำหรับครูประถมศึกษา', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 2, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_CS', program: 'single_major' },
-  { course_code: '2766355', course_name: 'ระบบสื่อสารข้อมูลและเครือข่ายคอมพิวเตอร์', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_CS', program: 'single_major' },
-  { course_code: '2766362', course_name: 'การออกแบบแพลตฟอร์มการเรียนรู้', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 1, prerequisite: '', subcategory: 'MAJOR_ELEC1_CS', program: 'single_major' },
-  { course_code: '2766384', course_name: 'การควบคุมการปฏิบัติงานระยะไกลเพื่อการศึกษา', credits: 3, category: 'MAJOR_ELEC1', is_required: false, recommended_year: 3, recommended_semester: 2, prerequisite: '', subcategory: 'MAJOR_ELEC1_CS', program: 'single_major' }
+  // ===== 5. วิชาเอก — เลือก 2: ด้านคอมพิวเตอร์ฯ (≥5 นก.) จากวิชาของเอกคอมพิวเตอร์การศึกษาทั้งหมด =====
+  { course_code: '2110183', course_name: 'ความรู้เบื้องต้นเกี่ยวกับคอมพิวเตอร์และการทํางานโปรแกรม', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301101', course_name: 'แคลคูลัส 1', credits: 4, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766125', course_name: 'การพัฒนาบทเรียนมัลติมีเดีย', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766127', course_name: 'วิทยาศาสตร์พื้นฐานสําหรับเทคโนโลยี', credits: 2, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766224', course_name: 'การเขียนโปรแกรมเพื่อการศึกษา', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766233', course_name: 'พื้นฐานหลักการระบบฐานข้อมูล และการทําข้อมูล', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766334', course_name: 'การเขียนโปรแกรมภาษาเพื่อการควบคุม: หุ่นยนต์ศึกษา', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766355', course_name: 'ระบบสื่อสารข้อมูลและเครือข่ายคอมพิวเตอร์', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766374', course_name: 'การวิเคราะห์และออกแบบระบบสารสนเทศทางการศึกษา', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766417', course_name: 'วิธีวิทยาการสอนวิทยาการคํานวณ', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766420', course_name: 'โครงงานวิจัยและนวัตกรรมคอมพิวเตอร์ศึกษา 1', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766421', course_name: 'การออกแบบเทคโนโลยี', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766440', course_name: 'โครงงานวิจัยและนวัตกรรมคอมพิวเตอร์ศึกษา 2', credits: 4, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2102213', course_name: 'ทฤษฎีวงจรไฟฟ้า 1 และปฏิบัติการ', credits: 4, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110315', course_name: 'ระบบเชิงขนานและระบบกระจาย', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110327', course_name: 'การออกแบบอัลกอริทึม', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110352', course_name: 'สถาปัตยกรรมระบบคอมพิวเตอร์', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110404', course_name: 'ทฤษฎีการคํานวณ', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110428', course_name: 'ความรู้เบื้องต้นเกี่ยวกับการทําเหมืองข้อมูล', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110431', course_name: 'วิทยาการภาพดิจิทัลเบื้องต้น', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110435', course_name: 'วิทยาการหุ่นยนต์เบื้องต้น', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110442', course_name: 'การวิเคราะห์โปรแกรมเชิงวัตถุ', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110443', course_name: 'ปฏิสัมพันธ์ของมนุษย์กับคอมพิวเตอร์', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110477', course_name: 'ปัญญาประดิษฐ์ 2', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110481', course_name: 'เครือข่ายคอมพิวเตอร์ไร้สาย', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110511', course_name: 'การเขียนโปรแกรมเกม', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110512', course_name: 'คอมพิวเตอร์แอนิเมชัน', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110514', course_name: 'คอมพิวเตอร์กราฟิกส์และการจําลองทางฟิสิกส์แบบเรียลไทม์', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2110571', course_name: 'โครงข่ายประสาท', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301170', course_name: 'คอมพิวเตอร์และการโปรแกรม', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301172', course_name: 'ปฏิบัติการคอมพิวเตอร์และการโปรแกรม', credits: 1, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301260', course_name: 'เทคนิคการทําโปรแกรม', credits: 4, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301263', course_name: 'โครงสร้างข้อมูลและขั้นตอนวิธีหลักมูล', credits: 4, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301274', course_name: 'ระบบคอมพิวเตอร์', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301279', course_name: 'ระบบเครือข่ายคอมพิวเตอร์เบื้องต้น', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2301371', course_name: 'ระบบปฏิบัติการ', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2603284', course_name: 'สถิติสําหรับวิทยาศาสตร์กายภาพ', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2603376', course_name: 'การค้นพบองค์ความรู้และการทําเหมืองข้อมูล', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2765219', course_name: 'การถ่ายภาพเพื่อการสื่อสารทางการศึกษา', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2765220', course_name: 'การผลิตวีดิทัศน์การศึกษา', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' },
+  { course_code: '2766218', course_name: 'คอมพิวเตอร์และเทคโนโลยีสารสนเทศสําหรับครู', credits: 3, category: 'MAJOR_ELEC_CS', is_required: false, recommended_year: 0, recommended_semester: 0, prerequisite: '', subcategory: 'MAJOR_ELEC_CS', program: 'single_major' }
 ];
 
 // ---- Helper: ค้นหาวิชาจากรหัส ----
