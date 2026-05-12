@@ -12,10 +12,9 @@ function calcSemesterGrade(courses) {
   let CA = 0, CG = 0, GP = 0;
   courses.forEach(c => {
     const credits = parseFloat(c.credits);
-    // CA = ทุกวิชาที่ลงทะเบียน (ยกเว้น FOUND ที่ไม่นับ นก.)
-    if (c.category !== 'FOUND') {
-      CA += credits;
-    }
+    // CA = ทุกวิชาที่ลงทะเบียน
+    CA += credits;
+    
     // CG = วิชาที่นับ GPA (ไม่รวม W, I, และ FOUND)
     if (c.grade !== 'W' && c.grade !== 'I' && c.category !== 'FOUND') {
       if (GPA_COUNTED.has(c.grade)) {
@@ -210,21 +209,28 @@ function generatePlan(progress, curriculum, targetYear, targetSem, currentYear, 
   ];
 
   // เพิ่มวิชาเลือกที่ยังต้องการ
-  const elec1Needed = Math.max(0, 9 - progress.majorElec.elec1.earned);
-  const elec2Needed = Math.max(0, 6 - progress.majorElec.elec2.earned);
+  const elecEtNeeded = Math.max(0, progress.majorElec.elecEt.required - progress.majorElec.elecEt.earned);
+  const elecCsNeeded = Math.max(0, progress.majorElec.elecCs.required - progress.majorElec.elecCs.earned);
+  const elecGroupNeeded = Math.max(0, progress.majorElec.elecGroup.required - progress.majorElec.elecGroup.earned);
 
-  if (elec1Needed > 0) {
-    const availableElec1 = curriculum.filter(c =>
-      c.category === 'MAJOR_ELEC1' &&
-      !remaining.find(r => r.course_code === c.course_code)
-    );
-    let elec1Credits = 0;
-    for (const c of availableElec1) {
-      if (elec1Credits >= elec1Needed) break;
-      remaining.push(c);
-      elec1Credits += c.credits;
+  const fillElec = (category, neededCredits) => {
+    if (neededCredits > 0) {
+      const available = curriculum.filter(c =>
+        c.category === category &&
+        !remaining.find(r => r.course_code === c.course_code)
+      );
+      let collected = 0;
+      for (const c of available) {
+        if (collected >= neededCredits) break;
+        remaining.push(c);
+        collected += c.credits;
+      }
     }
-  }
+  };
+
+  fillElec('MAJOR_ELEC_ET', elecEtNeeded);
+  fillElec('MAJOR_ELEC_CS', elecCsNeeded);
+  fillElec('MAJOR_ELEC_GROUP', elecGroupNeeded);
 
   // Sort by recommended year/semester
   remaining.sort((a, b) =>

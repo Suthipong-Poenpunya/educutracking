@@ -98,7 +98,11 @@ function parseCR60Text(text) {
     if (semMatch) {
       const semStr = semMatch[1].toUpperCase();
       currentSem = semStr === '1ST' ? 1 : semStr === '2ND' ? 2 : 3;
-      currentYear = parseInt(semMatch[2]);
+      
+      let year = parseInt(semMatch[2]);
+      if (year < 2500) year += 543; // Convert AD to BE
+      currentYear = year;
+      
       continue;
     }
     
