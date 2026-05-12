@@ -17,21 +17,7 @@ function closeOcrModal() {
   document.getElementById('ocr-modal').classList.remove('show');
 }
 
-// Setup Event Listener for File Input
-function setupOcrEvents() {
-  const fileInput = document.getElementById('cr60-file');
-  if(fileInput) {
-    // Prevent duplicate listeners
-    fileInput.removeEventListener('change', handleFileUpload);
-    fileInput.addEventListener('change', handleFileUpload);
-  }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupOcrEvents);
-} else {
-  setupOcrEvents();
-}
+// No need to setup listeners manually, handled by onchange in index.html
 
 async function handleFileUpload(e) {
   const file = e.target.files[0];

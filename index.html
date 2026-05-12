@@ -278,7 +278,7 @@
       <div class="modal-body">
         <p>อัปโหลดไฟล์ PDF ใบแจ้งผลการศึกษา (CR60) เพื่อดึงข้อมูลรายวิชาอัตโนมัติ</p>
         <div style="margin-top: 1rem;">
-          <input type="file" id="cr60-file" accept=".pdf" class="form-input" style="padding: 0.5rem;" />
+          <input type="file" id="cr60-file" accept=".pdf" class="form-input" style="padding: 0.5rem;" onchange="handleFileUpload(event)" />
         </div>
         <div id="ocr-status" style="margin-top: 1rem; color: var(--color-primary); font-size: 0.9rem;"></div>
         

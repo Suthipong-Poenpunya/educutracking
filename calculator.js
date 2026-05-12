@@ -125,7 +125,7 @@ function calcProgress(enrollments, curriculum) {
     label: CATEGORY_RULES.FREE_ELEC.label
   };
 
-  const totalEarned = geTotal + prof.earned + majorCore.earned + majorElec.total; // ไม่นับรวม FREE_ELEC ในหน่วยกิตรวมที่จำเป็น
+  const totalEarned = geTotal + prof.earned + majorCore.earned + majorElec.total + freeElec.earned;
 
   return {
     ge,
