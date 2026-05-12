@@ -233,7 +233,7 @@ async function deleteSemester(semId) {
   enrollments = enrollments.filter(e => e.semester_id !== semId);
   
   renderCourses();
-  updateProgressUI();
+  renderAll();
   showToast('กำลังลบข้อมูล...', 'info');
   
   API.deleteSemester(semId).then(res => {
@@ -357,7 +357,7 @@ async function handleSaveCourse(e) {
       backup = { ...enrollments[idx] };
       enrollments[idx] = { ...enrollments[idx], course_code: code, course_name: name, credits: parseFloat(credits), grade, category, semester_id: semId };
       renderCourses();
-      updateProgressUI();
+      renderAll();
     }
     
     // Background API
@@ -381,7 +381,7 @@ async function handleSaveCourse(e) {
     };
     enrollments.push(newEnr);
     renderCourses();
-    updateProgressUI();
+    renderAll();
     
     // Background API
     API.addEnrollment({ userId: currentUser.user_id, semesterId: semId, courseCode: code, courseName: name, credits, grade, category, isManual }).then(res => {
@@ -407,7 +407,7 @@ async function deleteCourse(enrollmentId) {
   const backup = enrollments[backupIdx];
   enrollments.splice(backupIdx, 1);
   renderCourses();
-  updateProgressUI();
+  renderAll();
   showToast('กำลังลบข้อมูล...', 'info');
 
   API.deleteEnrollment(enrollmentId).then(res => {
