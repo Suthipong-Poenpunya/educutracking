@@ -319,14 +319,32 @@ function showSelectedCourse(course) {
 async function handleSaveCourse(e) {
   e.preventDefault();
   const editId = document.getElementById('course-edit-id').value;
-  const code = document.getElementById('course-code-search').value;
-  const name = document.getElementById('selected-course-name').textContent;
-  const credits = document.getElementById('selected-course-credits').textContent;
-  const category = document.getElementById('course-category').value;
+  const semId = document.getElementById('course-semester-id').value;
   const grade = document.getElementById('course-grade').value;
-  const semId = document.getElementById('course-semester').value;
+  const isManual = document.querySelector('input[name="courseType"]:checked').value === 'manual';
 
-  if (!code || !category || !grade || !semId) return alert('กรุณากรอกข้อมูลให้ครบ');
+  if (!grade) { showToast('กรุณาเลือกเกรด', 'warning'); return; }
+
+  let code, name, credits, category;
+  if (isManual) {
+    code = document.getElementById('manual-code').value.trim();
+    name = document.getElementById('manual-name').value.trim();
+    credits = document.getElementById('manual-credits').value;
+    category = document.getElementById('manual-category').value;
+    if (!code || !name || !credits || !category) { showToast('กรุณากรอกข้อมูลให้ครบ', 'warning'); return; }
+    credits = parseFloat(credits);
+  } else {
+    if (!selectedCourse && !editId) { showToast('กรุณาเลือกวิชา', 'warning'); return; }
+    // If editId and no new course selected, use existing data (handled differently usually)
+    // Actually, if we are editing, we preload selectedCourse.
+    if (!selectedCourse) { showToast('ไม่มีข้อมูลรายวิชา', 'warning'); return; }
+    code = selectedCourse.course_code;
+    name = selectedCourse.course_name;
+    credits = selectedCourse.credits;
+    category = selectedCourse.category;
+  }
+
+  if (!semId) return alert('กรุณาระบุภาคการศึกษา');
 
   closeModal('modal-add-course');
   showToast('กำลังบันทึกข้อมูล...', 'info');
