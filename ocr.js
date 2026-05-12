@@ -5,7 +5,7 @@
 let currentOcrData = [];
 
 function openOcrModal() {
-  document.getElementById('ocr-modal').classList.add('active');
+  document.getElementById('ocr-modal').classList.add('show');
   document.getElementById('cr60-file').value = '';
   document.getElementById('ocr-status').innerText = '';
   document.getElementById('ocr-results').style.display = 'none';
@@ -14,7 +14,7 @@ function openOcrModal() {
 }
 
 function closeOcrModal() {
-  document.getElementById('ocr-modal').classList.remove('active');
+  document.getElementById('ocr-modal').classList.remove('show');
 }
 
 // Setup Event Listener for File Input
