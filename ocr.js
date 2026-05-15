@@ -215,24 +215,23 @@ async function confirmOcrImport() {
            existingEnrollments = existingEnrollments.concat(enrRes.data);
        }
     }
-    const existingCodes = new Set(existingEnrollments.map(e => e.course_code));
-    
+    // ตรวจ duplicate ด้วยทั้ง course_code + semester_id เพื่อรองรับวิชา retake ต่างภาค
+    const existingPairs = new Set(existingEnrollments.map(e => `${e.course_code}::${e.semester_id}`));
+
     // 3. Batch Add enrollments
     const newEnrollments = [];
     for (const item of currentOcrData) {
-      if (!existingCodes.has(item.courseCode)) {
-        const semId = semIdMap[`${item.academicYear}-${item.semester}`];
-        if (semId) {
-          newEnrollments.push({
-            semesterId: semId,
-            courseCode: item.courseCode,
-            courseName: item.courseName,
-            credits: item.credits,
-            grade: item.grade,
-            category: item.category,
-            isManual: item.isManual
-          });
-        }
+      const semId = semIdMap[`${item.academicYear}-${item.semester}`];
+      if (semId && !existingPairs.has(`${item.courseCode}::${semId}`)) {
+        newEnrollments.push({
+          semesterId: semId,
+          courseCode: item.courseCode,
+          courseName: item.courseName,
+          credits: item.credits,
+          grade: item.grade,
+          category: item.category,
+          isManual: item.isManual
+        });
       }
     }
     
@@ -251,9 +250,7 @@ async function confirmOcrImport() {
     showToast('นำเข้าข้อมูลรายวิชาเรียบร้อยแล้ว', 'success');
     
     // Refresh App
-    if (typeof loadSemesters === 'function') {
-      loadSemesters();
-    }
+    loadAllData();
     
   } catch (err) {
     console.error(err);

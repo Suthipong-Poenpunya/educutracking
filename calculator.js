@@ -15,10 +15,11 @@ function calcSemesterGrade(courses) {
     // CA = ทุกวิชาที่ลงทะเบียน
     CA += credits;
     
-    // CG = วิชาที่นับ GPA (ไม่รวม W, I, และ FOUND)
+    // CG = ทุกวิชายกเว้น W, I และ FOUND (ตามระบบ CU: CG = CA ลบ W และ I)
+    // S และ P นับใน CG แต่ไม่มี grade point จึงไม่นับใน GP
     if (c.grade !== 'W' && c.grade !== 'I' && c.category !== 'FOUND') {
+      CG += credits;
       if (GPA_COUNTED.has(c.grade)) {
-        CG += credits;
         GP += GRADE_POINTS[c.grade] * credits;
       }
     }
@@ -202,6 +203,14 @@ function predictGraduation(enrollments, progress, currentYear, currentSem) {
  * สร้างแผนการลงทะเบียนตามเป้าหมาย
  */
 function generatePlan(progress, curriculum, targetYear, targetSem, currentYear, currentSem, maxCreditsPerSem) {
+  // ตรวจว่า target อยู่ในอดีตหรือไม่
+  const targetPast =
+    targetYear < currentYear ||
+    (targetYear === currentYear && targetSem <= currentSem);
+  if (targetPast) {
+    return { plan: [], feasible: false, totalSemesters: 0, availableSemesters: 0, error: 'ปีการศึกษาที่ต้องการจบผ่านไปแล้ว กรุณาเลือกใหม่' };
+  }
+
   // หาวิชาที่ยังต้องลง (บังคับก่อน)
   let remaining = [
     ...progress.prof.missing,

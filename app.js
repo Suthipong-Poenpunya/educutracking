@@ -64,7 +64,14 @@ function showApp() {
 
 function handleLogout() {
   if (!confirm('ต้องการออกจากระบบ? (ข้อมูลจะยังอยู่ใน localStorage)')) return;
+  // ลบ data cache ของ user ที่กำลัง logout
+  if (currentUser) {
+    localStorage.removeItem('cache_sems_' + currentUser.user_id);
+    localStorage.removeItem('cache_enrs_' + currentUser.user_id);
+  }
   currentUser = null;
+  semesters = [];
+  enrollments = [];
   document.getElementById('register-screen').style.display = 'flex';
   document.getElementById('app-container').style.display = 'none';
   document.getElementById('user-info').style.display = 'none';
@@ -230,6 +237,16 @@ async function handleAddSemester(e) {
   const year = document.getElementById('sem-year').value;
   const term = document.getElementById('sem-term').value;
   if (!year || !term) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+  // ตรวจ duplicate ก่อน optimistic update เพื่อหลีกเลี่ยงภาคซ้ำใน UI ชั่วคราว
+  const isDuplicate = semesters.some(
+    s => String(s.academic_year) === String(year) && String(s.semester) === String(term)
+  );
+  if (isDuplicate) {
+    showToast('ภาคการศึกษานี้มีอยู่แล้ว', 'warning');
+    closeModal('modal-add-semester');
+    return;
+  }
 
   // Optimistic UI update
   closeModal('modal-add-semester');
@@ -561,6 +578,10 @@ function generatePlanUI() {
 
   const result = generatePlan(progress, curriculum, targetYear, targetSem, curYear, curSem, maxCredits);
   let html = '';
+  if (result.error) {
+    document.getElementById('plan-result').innerHTML = `<div class="prediction-box warning">⚠️ ${result.error}</div>`;
+    return;
+  }
   if (!result.feasible) {
     html += `<div class="prediction-box warning" style="margin-bottom:16px">⚠️ ไม่สามารถจบตามเป้าได้ ต้องการ ${result.totalSemesters} ภาค แต่มีเพียง ${result.availableSemesters} ภาค</div>`;
   } else {

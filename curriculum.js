@@ -231,12 +231,18 @@ function getCoursesByCategory(category) {
 }
 
 // ---- Helper: ค้นหาวิชาตาม keyword ----
+// Deduplicate ด้วย course_code เพื่อป้องกันวิชาที่มีหลาย category (เช่น 2766224) ซ้ำในผลลัพธ์
 function searchCourses(keyword) {
   const kw = keyword.toLowerCase();
-  return CURRICULUM_DATA.filter(c =>
-    c.course_code.includes(kw) ||
-    c.course_name.toLowerCase().includes(kw)
-  );
+  const seen = new Set();
+  return CURRICULUM_DATA.filter(c => {
+    if (seen.has(c.course_code)) return false;
+    if (c.course_code.includes(kw) || c.course_name.toLowerCase().includes(kw)) {
+      seen.add(c.course_code);
+      return true;
+    }
+    return false;
+  });
 }
 
 // ---- Helper: กรองวิชาตามโปรแกรม ----
