@@ -47,20 +47,29 @@ async function handleLogin(e) {
     return;
   }
 
-  const res = await API.getUserByStudentId(studentId);
-  if (!res.success) {
-    showToast('ไม่พบรหัสนิสิตนี้ในระบบ กรุณาสมัครใหม่', 'error');
-    return;
-  }
-  if (res.data.display_name !== name) {
-    showToast('ชื่อ-นามสกุลไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่', 'error');
-    return;
-  }
+  const btn = e.target.querySelector('[type="submit"]');
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = 'กำลังตรวจสอบ...';
 
-  currentUser = res.data;
-  saveToStorage(STORAGE_KEYS.USER, currentUser);
-  showApp();
-  showToast('ยินดีต้อนรับ ' + currentUser.display_name + '!', 'success');
+  try {
+    const res = await API.getUserByStudentId(studentId);
+    if (!res.success) {
+      showToast('ไม่พบรหัสนิสิตนี้ในระบบ กรุณาสมัครใหม่', 'error');
+      return;
+    }
+    if (res.data.display_name !== name) {
+      showToast('ชื่อ-นามสกุลไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่', 'error');
+      return;
+    }
+    currentUser = res.data;
+    saveToStorage(STORAGE_KEYS.USER, currentUser);
+    showApp();
+    showToast('ยินดีต้อนรับ ' + currentUser.display_name + '!', 'success');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 }
 
 // ---- Registration ----
@@ -74,27 +83,38 @@ async function handleRegister(e) {
     entrySemester: parseInt(document.getElementById('reg-entry-sem').value)
   };
 
-  // ตรวจว่า studentId มีอยู่แล้วหรือไม่
-  const existing = await API.getUserByStudentId(data.studentId);
-  if (existing.success) {
-    showToast('รหัสนิสิตนี้มีผู้ใช้อยู่แล้ว กรุณาเข้าสู่ระบบ', 'error');
-    switchAuthMode('login');
-    return;
-  }
+  const btn = e.target.querySelector('[type="submit"]');
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = 'กำลังตรวจสอบ...';
 
-  const res = await API.createUser(data);
-  if (res.success) {
-    currentUser = {
-      user_id: res.data.user_id,
-      display_name: data.displayName,
-      student_id: data.studentId,
-      program: data.program,
-      entry_year: data.entryYear,
-      entry_semester: data.entrySemester
-    };
-    saveToStorage(STORAGE_KEYS.USER, currentUser);
-    showApp();
-    showToast('ลงทะเบียนสำเร็จ!', 'success');
+  try {
+    // ตรวจว่า studentId มีอยู่แล้วหรือไม่
+    const existing = await API.getUserByStudentId(data.studentId);
+    if (existing.success) {
+      showToast('รหัสนิสิตนี้มีผู้ใช้อยู่แล้ว กรุณาเข้าสู่ระบบ', 'error');
+      switchAuthMode('login');
+      return;
+    }
+
+    btn.textContent = 'กำลังสมัคร...';
+    const res = await API.createUser(data);
+    if (res.success) {
+      currentUser = {
+        user_id: res.data.user_id,
+        display_name: data.displayName,
+        student_id: data.studentId,
+        program: data.program,
+        entry_year: data.entryYear,
+        entry_semester: data.entrySemester
+      };
+      saveToStorage(STORAGE_KEYS.USER, currentUser);
+      showApp();
+      showToast('ลงทะเบียนสำเร็จ!', 'success');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
   }
 }
 
@@ -140,8 +160,18 @@ async function loadAllData() {
   ]);
 
   let changed = false;
-  if (semRes.success) { semesters = semRes.data; changed = true; }
-  if (enrRes.success) { enrollments = enrRes.data; changed = true; }
+  if (semRes.success) {
+    // Preserve any pending optimistic semesters (not yet confirmed by server)
+    const pendingSems = semesters.filter(s => String(s.semester_id).startsWith('temp-'));
+    semesters = [...semRes.data, ...pendingSems];
+    changed = true;
+  }
+  if (enrRes.success) {
+    // Preserve any pending optimistic enrollments (not yet confirmed by server)
+    const pendingEnrs = enrollments.filter(e => String(e.enrollment_id).startsWith('temp-'));
+    enrollments = [...enrRes.data, ...pendingEnrs];
+    changed = true;
+  }
   if (changed) {
     saveDataCache();
     renderAll();

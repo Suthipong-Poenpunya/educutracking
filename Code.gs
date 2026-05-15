@@ -81,15 +81,17 @@ function getUser(userId) {
 function getUserByStudentId(studentId) {
   const sheet = getSheet(SHEET.USERS);
   const data = sheet.getDataRange().getValues();
-  const row = data.find(r => r[2] === studentId);
+  // Sheets stores student IDs as numbers — compare as strings to handle both
+  const row = data.find(r => String(r[2]) === String(studentId));
   if (!row) return { success: false, message: 'User not found' };
-  return { success: true, data: { user_id: row[0], display_name: row[1], student_id: row[2], program: row[3], entry_year: row[4], entry_semester: row[5] } };
+  return { success: true, data: { user_id: row[0], display_name: row[1], student_id: String(row[2]), program: row[3], entry_year: row[4], entry_semester: row[5] } };
 }
 
 function createUser(payload) {
   const sheet = getSheet(SHEET.USERS);
   const userId = payload.userId || generateId();
-  sheet.appendRow([userId, payload.displayName, payload.studentId, payload.program, payload.entryYear, payload.entrySemester, new Date().toISOString()]);
+  // Prefix with apostrophe trick via setNumberFormat to force text, or just pass as-is — String() ensures no scientific notation
+  sheet.appendRow([userId, payload.displayName, String(payload.studentId), payload.program, payload.entryYear, payload.entrySemester, new Date().toISOString()]);
   return { success: true, data: { user_id: userId } };
 }
 
