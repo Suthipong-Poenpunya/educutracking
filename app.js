@@ -22,6 +22,47 @@ function populateDropdowns() {
   GE_CATEGORIES.forEach(c => { const o = document.createElement('option'); o.value = c.value; o.textContent = c.label; catSelect.appendChild(o); });
 }
 
+// ---- Auth Mode Toggle ----
+function switchAuthMode(mode) {
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  if (mode === 'register') {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'block';
+  } else {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+  }
+  loginForm.reset();
+  registerForm.reset();
+}
+
+// ---- Login ----
+async function handleLogin(e) {
+  e.preventDefault();
+  const studentId = document.getElementById('login-student-id').value.trim();
+  const name = document.getElementById('login-name').value.trim();
+  if (!studentId || !name) {
+    showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+    return;
+  }
+
+  const res = await API.getUserByStudentId(studentId);
+  if (!res.success) {
+    showToast('ไม่พบรหัสนิสิตนี้ในระบบ กรุณาสมัครใหม่', 'error');
+    return;
+  }
+  if (res.data.display_name !== name) {
+    showToast('ชื่อ-นามสกุลไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่', 'error');
+    return;
+  }
+
+  currentUser = res.data;
+  saveToStorage(STORAGE_KEYS.USER, currentUser);
+  showApp();
+  showToast('ยินดีต้อนรับ ' + currentUser.display_name + '!', 'success');
+}
+
 // ---- Registration ----
 async function handleRegister(e) {
   e.preventDefault();
@@ -33,20 +74,24 @@ async function handleRegister(e) {
     entrySemester: parseInt(document.getElementById('reg-entry-sem').value)
   };
 
-  // Try to find existing user by studentId (enables cross-device login)
+  // ตรวจว่า studentId มีอยู่แล้วหรือไม่
   const existing = await API.getUserByStudentId(data.studentId);
   if (existing.success) {
-    currentUser = existing.data;
-    saveToStorage(STORAGE_KEYS.USER, currentUser);
-    showApp();
-    showToast('ยินดีต้อนรับกลับมา ' + currentUser.display_name + '!', 'success');
+    showToast('รหัสนิสิตนี้มีผู้ใช้อยู่แล้ว กรุณาเข้าสู่ระบบ', 'error');
+    switchAuthMode('login');
     return;
   }
 
-  // Create new user if not found
   const res = await API.createUser(data);
   if (res.success) {
-    currentUser = { user_id: res.data.user_id, display_name: data.displayName, student_id: data.studentId, program: data.program, entry_year: data.entryYear, entry_semester: data.entrySemester };
+    currentUser = {
+      user_id: res.data.user_id,
+      display_name: data.displayName,
+      student_id: data.studentId,
+      program: data.program,
+      entry_year: data.entryYear,
+      entry_semester: data.entrySemester
+    };
     saveToStorage(STORAGE_KEYS.USER, currentUser);
     showApp();
     showToast('ลงทะเบียนสำเร็จ!', 'success');
@@ -54,7 +99,7 @@ async function handleRegister(e) {
 }
 
 function showApp() {
-  document.getElementById('register-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-container').style.display = 'block';
   document.getElementById('user-info').style.display = 'flex';
   document.getElementById('user-display-name').textContent = currentUser.display_name;
@@ -72,7 +117,8 @@ function handleLogout() {
   currentUser = null;
   semesters = [];
   enrollments = [];
-  document.getElementById('register-screen').style.display = 'flex';
+  document.getElementById('auth-screen').style.display = 'flex';
+  switchAuthMode('login');
   document.getElementById('app-container').style.display = 'none';
   document.getElementById('user-info').style.display = 'none';
   localStorage.removeItem(STORAGE_KEYS.USER);

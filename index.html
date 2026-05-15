@@ -23,20 +23,38 @@
     </div>
   </header>
 
-  <!-- Registration Screen -->
-  <div id="register-screen" class="register-screen">
+  <!-- Auth Screen (Login / Register) -->
+  <div id="auth-screen" class="register-screen">
     <div class="register-card">
       <div style="font-size:48px;margin-bottom:12px">🎓</div>
       <h2>ChulaEduTracker</h2>
       <p class="subtitle">ระบบติดตามและวางแผนการศึกษา<br>ครุศาสตรบัณฑิต สาขาเทคโนโลยีการศึกษา จุฬาฯ</p>
-      <form id="register-form" onsubmit="handleRegister(event)" style="text-align:left">
+
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)" style="text-align:left">
+        <div class="form-group">
+          <label class="form-label">รหัสนิสิต</label>
+          <input type="text" class="form-input" id="login-student-id" required placeholder="เช่น 6438xxxxx27" autocomplete="username">
+        </div>
         <div class="form-group">
           <label class="form-label">ชื่อ-นามสกุล</label>
-          <input type="text" class="form-input" id="reg-name" required placeholder="เช่น สมชาย ใจดี">
+          <input type="text" class="form-input" id="login-name" required placeholder="เช่น สมชาย ใจดี" autocomplete="name">
+          <p class="auth-hint">⚠️ กรุณาใส่ชื่อตามในบัตรนิสิตด้วยภาษาไทย ไม่มีคำนำหน้า และกรอกชื่อให้ถูกต้อง หากผิด จะไม่สามารถเข้าสู่ระบบได้</p>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">เข้าสู่ระบบ</button>
+        <p class="auth-switch">ยังไม่มีบัญชี? <a href="#" onclick="switchAuthMode('register');return false;">สมัครใหม่</a></p>
+      </form>
+
+      <!-- Register Form (hidden by default) -->
+      <form id="register-form" onsubmit="handleRegister(event)" style="text-align:left;display:none">
+        <div class="form-group">
+          <label class="form-label">ชื่อ-นามสกุล</label>
+          <input type="text" class="form-input" id="reg-name" required placeholder="เช่น สมชาย ใจดี" autocomplete="name">
+          <p class="auth-hint">⚠️ กรุณาใส่ชื่อตามในบัตรนิสิตด้วยภาษาไทย ไม่มีคำนำหน้า และกรอกชื่อให้ถูกต้อง หากผิด จะไม่สามารถเข้าสู่ระบบได้</p>
         </div>
         <div class="form-group">
           <label class="form-label">รหัสนิสิต</label>
-          <input type="text" class="form-input" id="reg-student-id" required placeholder="เช่น 6438xxxxx27">
+          <input type="text" class="form-input" id="reg-student-id" required placeholder="เช่น 6438xxxxx27" autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label">โปรแกรม</label>
@@ -58,9 +76,8 @@
             </select>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">
-          เริ่มใช้งาน
-        </button>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">สมัครใหม่</button>
+        <p class="auth-switch">มีบัญชีแล้ว? <a href="#" onclick="switchAuthMode('login');return false;">เข้าสู่ระบบ</a></p>
       </form>
     </div>
   </div>
