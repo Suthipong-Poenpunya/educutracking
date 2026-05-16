@@ -163,13 +163,19 @@ async function loadAllData() {
   if (semRes.success) {
     // Preserve any pending optimistic semesters (not yet confirmed by server)
     const pendingSems = semesters.filter(s => String(s.semester_id).startsWith('temp-'));
-    semesters = [...semRes.data, ...pendingSems];
+    // Avoid duplicating confirmed semesters already returned by server
+    const serverSemIds = new Set(semRes.data.map(s => s.semester_id));
+    const uniquePendingSems = pendingSems.filter(s => !serverSemIds.has(s.semester_id));
+    semesters = [...semRes.data, ...uniquePendingSems];
     changed = true;
   }
   if (enrRes.success) {
     // Preserve any pending optimistic enrollments (not yet confirmed by server)
     const pendingEnrs = enrollments.filter(e => String(e.enrollment_id).startsWith('temp-'));
-    enrollments = [...enrRes.data, ...pendingEnrs];
+    // Avoid duplicating confirmed enrollments already returned by server
+    const serverEnrIds = new Set(enrRes.data.map(e => e.enrollment_id));
+    const uniquePendingEnrs = pendingEnrs.filter(e => !serverEnrIds.has(e.enrollment_id));
+    enrollments = [...enrRes.data, ...uniquePendingEnrs];
     changed = true;
   }
   if (changed) {
@@ -517,8 +523,12 @@ async function handleSaveCourse(e) {
     API.addEnrollment({ userId: currentUser.user_id, semesterId: semId, courseCode: code, courseName: name, credits, grade, category, isManual }).then(res => {
       if (res.success) {
         const found = enrollments.find(e => e.enrollment_id === tempId);
-        if (found) found.enrollment_id = res.data.enrollment_id;
+        if (found) {
+          found.enrollment_id = res.data.enrollment_id; // swap temp → real ID
+        }
         saveDataCache();
+        renderCourses(); // re-render so real ID is reflected in DOM (delete/edit buttons)
+        renderAll();
         showToast('เพิ่มรายวิชาสำเร็จ', 'success');
       } else {
         enrollments = enrollments.filter(e => e.enrollment_id !== tempId); // rollback
